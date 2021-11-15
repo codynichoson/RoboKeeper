@@ -2,7 +2,7 @@
 <package format="2">
   <name>robokeeper</name>
   <version>0.0.0</version>
-  <description>The robokeeper package</description>
+  <description>Adroit blocks balls from passing</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -49,7 +49,12 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-
+  <build_depend>cv_bridge</build_depend>
+  <build_export_depend>cv_bridge</build_export_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>usb_cam</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

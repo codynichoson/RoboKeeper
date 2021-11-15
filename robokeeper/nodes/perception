@@ -12,7 +12,9 @@ class GetData(object):
         rospy.logerr('init')
 
 
+
     def callback(self,data):
+        rospy.logerr('before callback')
         cv_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
         rospy.logerr('callback')
         rospy.logerr(cv_image)
