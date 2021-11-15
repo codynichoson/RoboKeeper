@@ -8,7 +8,7 @@ import cv2
 class GetData(object):
     def __init__(self):
         self._bridge = CvBridge()
-        self._sub = rospy.Subscriber("usb_cam/image_raw", Image, self.callback)
+        self._sub = rospy.Subscriber("intel/image_raw", Image, self.callback)
 
 
     def callback(self,data):
