@@ -1,8 +1,7 @@
 <launch>
-    <arg name="video_device" default="/dev/video0" doc="Select the video device to open"/>
-    <node pkg="usb_cam" type="usb_cam_node" name="usb_cam">
-      <!-- Parameters used to find the camera -->
-      <param name="pixel_format" value="yuyv"/>
-      <param name="video_device" value="$(arg video_device)" />
-    </node>
+  <arg name="align_depth"               default="true"/>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" pass_all_args = "true">
+    <arg name="align_depth"               value="$(arg align_depth)"/>
+  </include>
 </launch>
