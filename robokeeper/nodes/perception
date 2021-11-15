@@ -7,20 +7,43 @@ import cv2
 
 class GetData(object):
     def __init__(self):
+        # Initialize CV bridge
         self._bridge = CvBridge()
-        self._sub = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw/image_topics", Image, self.callback)
-        rospy.logerr('init')
 
+        # Subscribe to raw color image data from camera
+        rospy.Subscriber("/camera/color/image_raw", Image, self.callback)
+        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback) # Use this for depth data
+
+        # Create window for live video feed
+        cv2.namedWindow("Image", 1)
+    
+    def show_img(self, img):
+        """ Function to display video """
+
+        # Show video
+        cv2.imshow("Image", img)
+        cv2.waitKey(3)
 
     def callback(self,data):
-        cv_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
-        rospy.logerr('callback')
-        rospy.logerr(cv_image)
+        """ Callback function for camera subscriber """
 
+        # Convert sensor message data to cv2
+        cv_image = self._bridge.imgmsg_to_cv2(data, "passthrough")
+
+        # Convert to RGB
+        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        
+        # Output pixel values
+        print(cv_image)
+
+        # Show center pixel depth when subscribing to depth data
+        # print(cv_image[240][424][2])
+
+        # Display live video feed
+        self.show_img(cv_image)
 
 
 if __name__=="__main__":
     rospy.init_node("perception")
-    rospy.logerr('main')
     c = GetData()
     rospy.spin()
