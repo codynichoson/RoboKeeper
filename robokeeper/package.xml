@@ -2,11 +2,7 @@
 <package format="2">
   <name>robokeeper</name>
   <version>0.0.0</version>
-<<<<<<< HEAD
-  <description>Adroit blocks balls from passing</description>
-=======
   <description>robokeeper</description>
->>>>>>> cody/feature
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
