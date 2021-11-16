@@ -4,46 +4,99 @@ import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 import cv2
+import numpy as np
+import pyrealsense2 as rs
 
 class GetData(object):
     def __init__(self):
-        # Initialize CV bridge
+
         self._bridge = CvBridge()
+        #Subcribe to topic that publishes color picture
+        rospy.Subscriber("/camera/color/image_raw", Image, self.callback_color)
+        #Subcribe to topic that publishes depth picture
+        rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth) # Use this for depth data
 
-        # Subscribe to raw color image data from camera
-        rospy.Subscriber("/camera/color/image_raw", Image, self.callback)
-        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback) # Use this for depth data
-
-        # Create window for live video feed
-        cv2.namedWindow("Image", 1)
-    
     def show_img(self, img):
         """ Function to display video """
 
         # Show video
+        cv2.namedWindow("Image", 1)
         cv2.imshow("Image", img)
         cv2.waitKey(3)
+    
+    def draw_cont(self,img):
+        #Convert image from BGR to HSV- Shouldnt it be RGB to HSV? If you do that, contours look for blue and not red.
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        #Create range of HSV values for red
+        lower_range = np.array([0, 172, 84])
+        upper_range = np.array([17, 247, 214])
+        #Create mask, blurred image
+        mask = cv2.inRange(hsv, lower_range, upper_range) 
+        kernel = np.ones((3,3), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        mask = cv2.erode(mask, kernel, iterations=3)
+        blur = cv2.GaussianBlur(mask,(3,3),0)
 
-
-    def callback(self,data):
-        """ Callback function for camera subscriber """
-
-        # Convert sensor message data to cv2
-        cv_image = self._bridge.imgmsg_to_cv2(data, "passthrough")
-
-        # Convert to RGB
-        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         
-        # Output pixel values
-        print(cv_image)
+        num_cont = -1
+        #Draw contours based on blurred image
+        contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
 
-        # Show center pixel depth when subscribing to depth data
-        # print(cv_image[240][424][2])
+        try:
+            #Find the largest contour
+            cnt = max(contours,key=cv2.contourArea)
+            #Create moment of largest contour
+            M = cv2.moments(cnt)
+            if len(cnt) > 10:
+                #Find centroid of contour
+                self.cx = int(M['m10']/M['m00'])
+                self.cy = int(M['m01']/M['m00'])
+                cv2.circle(img, (self.cx,self.cy), 10, (255,255,255), -1)
 
-        # Display live video feed
-        self.show_img(cv_image)
+        except:
+            pass
+                
+    def xyz_from_intrin(self,img,cx,cy):
+        '''
+        Function: Creates coordinates from pixel data
+        Arguments: Depth image, pixel in x coordinate and pixel in z coordinate
+        '''
+        #Get intrisics data from sensor_msgs/CameraInfo. May want to subscribe to sensor_msgs/CameraInfo to get ride of numbers.
+        intrinsics = rs.intrinsics()
+        intrinsics.width = 1280
+        intrinsics.height = 720
+        intrinsics.ppx = 648.1041259765625
+        intrinsics.ppy = 358.46142578125
+        intrinsics.fx = 912.3723754882812
+        intrinsics.fy = 913.0225830078125
+        intrinsics.model  = rs.distortion.none     
+        intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
+        #Call rs2_deproject_pixel_to_point to get coordinates
+        result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
+        print(result)
 
 
+
+    def callback_color(self,data):
+        """ Callback function for geting color image from camera """
+        #Get the color image from camera
+        color_img = self._bridge.imgmsg_to_cv2(data, "passthrough")
+        #convert to RGB
+        color_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
+        #Call the draw contour function
+        result = self.draw_cont(color_img)
+        #Call the function that creates x,y,z coordinates
+        coords = self.xyz_from_intrin(self.depth_image,self.cx,self.cy)
+        #Show the color image with contours
+        self.show_img(color_img)
+
+    def callback_depth(self,data):
+        """ Callback function for getting depth data from aligned depth to color"""
+        #Create a depth image from camera. Make it self to be called throughout the code.
+        self.depth_image = self._bridge.imgmsg_to_cv2(data, "passthrough")
+
+    
 if __name__=="__main__":
     rospy.init_node("perception")
     c = GetData()
