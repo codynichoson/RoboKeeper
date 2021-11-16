@@ -4,25 +4,122 @@ import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 import cv2
+import numpy as np
+import pyrealsense2 as rs
 
 class GetData(object):
     def __init__(self):
+        # cv2.namedWindow("Image", 1)
+        # Initialize CV bridge
         self._bridge = CvBridge()
-        self._sub = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw/image_topics", Image, self.callback)
-        rospy.logerr('init')
+
+        # Subscribe to raw color image data from camera
+        
+        rospy.Subscriber("/camera/color/image_raw", Image, self.callback_color)
+        # cv2.namedWindow("Image", 1)
+        # rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.callback_depth) # Use this for depth data
+        rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth) # Use this for depth data
+
+        # Create window for live video feed
+        
+    
+    def show_img(self, img):
+        """ Function to display video """
+
+        # Show video
+        cv2.namedWindow("Image", 1)
+        cv2.imshow("Image", img)
+        cv2.waitKey(3)
+    
+
+    def draw_cont(self,img):
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        lower_range = np.array([0, 172, 84])
+        upper_range = np.array([17, 247, 214])
+        mask = cv2.inRange(hsv, lower_range, upper_range) 
+        kernel = np.ones((3,3), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        mask = cv2.erode(mask, kernel, iterations=3)
+        blur = cv2.GaussianBlur(mask,(3,3),0)
+
+        
+        num_cont = -1
+
+        contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
+
+        try:
+            cnt = max(contours,key=cv2.contourArea)
+            M = cv2.moments(cnt)
+            if len(cnt) > 10:
+                self.cx = int(M['m10']/M['m00'])
+                self.cy = int(M['m01']/M['m00'])
+                cv2.circle(img, (self.cx,self.cy), 10, (255,255,255), -1)
+                # print(img[cy][cx])
+                # print(self.cx)
+        except:
+            pass
+                
+    def xyz_from_intrin(self,img,cx,cy):
+        intrinsics = rs.intrinsics()
+        intrinsics.width = 1280
+        intrinsics.height = 720
+        intrinsics.ppx = 648.1041259765625
+        intrinsics.ppy = 358.46142578125
+        intrinsics.fx = 912.3723754882812
+        intrinsics.fy = 913.0225830078125
+        #intrinsics.model = cameraInfo.distortion_model
+        intrinsics.model  = rs.distortion.none     
+        intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
+        result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
+        print(result)
+
+    def callback_color(self,data):
+        """ Callback function for camera subscriber """
+
+        # Convert sensor message data to cv2
+        # cv2.namedWindow("Image", 1)
+        color_img = self._bridge.imgmsg_to_cv2(data, "passthrough")
+
+        # Convert to RGB
+        color_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
+        
+        # Output pixel values
+        # print(cv_image)
+
+        # Show center pixel depth when subscribing to depth data
+        # print(cv_image[240][424][2])
+
+        # Display live video feed
+        
+        result = self.draw_cont(color_img)
+        coords = self.xyz_from_intrin(self.depth_image,self.cx,self.cy)
+        self.show_img(color_img)
+
+    def callback_depth(self,data):
+        """ Callback function for camera subscriber """
+
+        # Convert sensor message data to cv2
+        # cv2.namedWindow("Image", 2)
+        self.depth_image = self._bridge.imgmsg_to_cv2(data, "passthrough")
+
+        # Convert to RGB
+        # self.depth_image = cv2.cvtColor(self.depth_image, cv2.COLOR_BGR2RGB)
+        
+        # Output pixel values
+        # print(cv_image)
+
+        # Show center pixel depth when subscribing to depth data
+        # print(cv_image[240][424][2])
+
+        # Display live video feed
+        # self.show_img_depth(cv_image)
 
 
-
-    def callback(self,data):
-        rospy.logerr('before callback')
-        cv_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
-        rospy.logerr('callback')
-        rospy.logerr(cv_image)
-
-
-
+    
 if __name__=="__main__":
+    # cv2.namedWindow("Image", 1)
     rospy.init_node("perception")
-    rospy.logerr('main')
     c = GetData()
     rospy.spin()
+    # cv2.namedWindow("Image", 1)
