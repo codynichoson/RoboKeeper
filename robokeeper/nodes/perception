@@ -26,12 +26,6 @@ class GetData(object):
 
 
     def callback(self,data):
-<<<<<<< HEAD
-        rospy.logerr('before callback')
-        cv_image = self._bridge.imgmsg_to_cv2(data, "bgr8")
-        rospy.logerr('callback')
-        rospy.logerr(cv_image)
-=======
         """ Callback function for camera subscriber """
 
         # Convert sensor message data to cv2
@@ -45,7 +39,6 @@ class GetData(object):
 
         # Show center pixel depth when subscribing to depth data
         # print(cv_image[240][424][2])
->>>>>>> cody/feature
 
         # Display live video feed
         self.show_img(cv_image)
