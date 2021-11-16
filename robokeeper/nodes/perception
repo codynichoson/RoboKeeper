@@ -3,6 +3,7 @@
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
+from robokeeper.msg import xy_depth
 import cv2
 import numpy as np
 import pyrealsense2 as rs
@@ -15,6 +16,8 @@ class GetData(object):
         rospy.Subscriber("/camera/color/image_raw", Image, self.callback_color)
         #Subcribe to topic that publishes depth picture
         rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth) # Use this for depth data
+        #Setup publisher for publishing centroid coordinates and depth
+        self.pub = rospy.Publisher("xy_depth", xy_depth, queue_size=10)
 
     def show_img(self, img):
         """ Function to display video """
@@ -75,6 +78,14 @@ class GetData(object):
         #Call rs2_deproject_pixel_to_point to get coordinates
         result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
         print(result)
+
+        # Assemble message to publish x, y, and depth data
+        msg = xy_depth()
+        msg.x = result[0]
+        msg.y = result[1]
+        msg.depth = result[2]
+        #Publish x, y, and depth data
+        self.pub.publish(msg)
 
 
 
