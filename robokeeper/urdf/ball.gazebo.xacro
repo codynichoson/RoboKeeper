@@ -1,0 +1,7 @@
+<?xml version = "1.0"?>
+<robot name="ball" xmlns:xacro="http://wiki.ros.org/wiki/xacro">
+
+<gazebo reference="ball">
+  <material>Gazebo/Red</material>
+</gazebo>
+</robot>
