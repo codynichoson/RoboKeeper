@@ -2,7 +2,7 @@
 
 import rospy
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from robokeeper.msg import xy_depth
 import cv2
 import numpy as np
@@ -12,6 +12,7 @@ class GetData(object):
     def __init__(self):
 
         self._bridge = CvBridge()
+        rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.get_info)
         #Subcribe to topic that publishes color picture
         rospy.Subscriber("/camera/color/image_raw", Image, self.callback_color)
         #Subcribe to topic that publishes depth picture
@@ -66,17 +67,18 @@ class GetData(object):
         Arguments: Depth image, pixel in x coordinate and pixel in z coordinate
         '''
         #Get intrisics data from sensor_msgs/CameraInfo. May want to subscribe to sensor_msgs/CameraInfo to get ride of numbers.
-        intrinsics = rs.intrinsics()
-        intrinsics.width = 1280
-        intrinsics.height = 720
-        intrinsics.ppx = 648.1041259765625
-        intrinsics.ppy = 358.46142578125
-        intrinsics.fx = 912.3723754882812
-        intrinsics.fy = 913.0225830078125
-        intrinsics.model  = rs.distortion.none     
-        intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
-        #Call rs2_deproject_pixel_to_point to get coordinates
-        result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
+        # intrinsics = rs.intrinsics()
+        # intrinsics.width = 1280
+        # intrinsics.height = 720
+        # intrinsics.ppx = 648.1041259765625
+        # intrinsics.ppy = 358.46142578125
+        # intrinsics.fx = 912.3723754882812
+        # intrinsics.fy = 913.0225830078125
+        # intrinsics.model  = rs.distortion.none     
+        # intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
+        # #Call rs2_deproject_pixel_to_point to get coordinates
+        # result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
+        result = rs.rs2_deproject_pixel_to_point(self.intrinsics, [cx,cy], img[cy,cx]*0.001)
         print(result)
 
         # Assemble message to publish x, y, and depth data
@@ -86,6 +88,19 @@ class GetData(object):
         msg.depth = result[2]
         #Publish x, y, and depth data
         self.pub.publish(msg)
+
+
+    def get_info(self,data):  #Currently not working
+        self.intrinsics = rs.intrinsics()
+        self.intrinsics.width = data.width
+        self.intrinsics.height = data.height
+        self.intrinsics.ppx = data.K[2]
+        self.intrinsics.ppx = data.K[5]
+        self.intrinsics.fx = data.K[0]
+        self.intrinsics.fy = data.K[4]
+        self.intrinsics.model  = rs.distortion.none
+        self.intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
+        
 
 
 
