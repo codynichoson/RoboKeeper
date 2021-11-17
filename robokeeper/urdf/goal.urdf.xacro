@@ -1,0 +1,36 @@
+<?xml version = "1.0"?>
+<robot name="goal" xmlns:xacro="http://wiki.ros.org/wiki/xacro">
+
+<link name="base"/>
+
+<link name="goal">
+  <inertial>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <mass value="100"/>
+    <inertia ixx="0.3542" ixy="0" ixz="0" iyy="2.1042" iyz="0" izz="2.1042"/>
+  </inertial>
+
+  <visual>
+  <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <geometry>
+      <box size="0.5 0.05 0.2"/>
+    </geometry>
+    <material name="green_mat">
+      <color rgba="1 1 1 1"/>
+    </material>
+  </visual>
+
+   <collision>
+   <origin xyz="0 0 0.1" rpy="0 0 0"/>
+   <geometry>
+     <box size="0.5 0.05 0.2"/>
+   </geometry>
+   </collision>
+</link>
+
+<joint name="fixed" type="fixed">
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+  <parent link="base"/>
+  <child link="goal"/>
+</joint>
+</robot>
