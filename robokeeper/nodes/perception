@@ -66,18 +66,7 @@ class GetData(object):
         Function: Creates coordinates from pixel data
         Arguments: Depth image, pixel in x coordinate and pixel in z coordinate
         '''
-        #Get intrisics data from sensor_msgs/CameraInfo. May want to subscribe to sensor_msgs/CameraInfo to get ride of numbers.
-        # intrinsics = rs.intrinsics()
-        # intrinsics.width = 1280
-        # intrinsics.height = 720
-        # intrinsics.ppx = 648.1041259765625
-        # intrinsics.ppy = 358.46142578125
-        # intrinsics.fx = 912.3723754882812
-        # intrinsics.fy = 913.0225830078125
-        # intrinsics.model  = rs.distortion.none     
-        # intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
-        # #Call rs2_deproject_pixel_to_point to get coordinates
-        # result = rs.rs2_deproject_pixel_to_point(intrinsics, [cx,cy], img[cy,cx])
+        
         result = rs.rs2_deproject_pixel_to_point(self.intrinsics, [cx,cy], img[cy,cx]*0.001)
         print(result)
 
@@ -90,7 +79,7 @@ class GetData(object):
         self.pub.publish(msg)
 
 
-    def get_info(self,data):  #Currently not working
+    def get_info(self,data):  
         self.intrinsics = rs.intrinsics()
         self.intrinsics.width = data.width
         self.intrinsics.height = data.height
