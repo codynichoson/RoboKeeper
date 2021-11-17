@@ -1,69 +1,43 @@
 <launch>
-  <arg name="debug" default="false" />
-  <arg name="simulation" default="false" />
-  <arg name="controller_type" default="xbox" />
-  
-  <!-- rqt console for filtering ROS logging messages by node
-  <node name="rqt_console" pkg="rqt_console" type="rqt_console"/>
+
+
+  <!--
+  By default, hide joint_state_publisher's GUI
+  MoveIt!'s "demo" mode replaces the real robot driver with the joint_state_publisher.
+  The latter one maintains and publishes the current joint configuration of the simulated robot.
+  It also provides a GUI to move the simulated robot around "manually".
+  This corresponds to moving around the real robot without the use of MoveIt.
   -->
+  <arg name="use_gui" default="false" />
 
-  <!-- load robot description -->
-  <param name="robot_description"
-    command="$(find xacro)/xacro.py '$(find hdt_6dof_a24_pincer_description)/urdf/hdt_arm.xacro'" />
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find hdt_6dof_a24_pincer_moveit)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
 
-  <!-- load the hardware configuration -->
-  <rosparam command="load" file="$(find hdt_6dof_a24_pincer_description)/config/hardware.yaml" />
+  <!-- If needed, broadcast static tf for robot root -->
   
-  <!-- load the controller configuration -->
-  <rosparam command="load" file="$(find hdt_6dof_a24_pincer_description)/config/controllers.yaml" />
-  
-  <!--load parameter file mapping joystick axis to joints -->
-  <!--also configures button mapping for start/stop control, etc. -->
-  <rosparam command="load" file="$(eval find('hdt_6dof_a24_pincer_description') + '/config/joystick_map_' + controller_type + '.yaml')" />
-  
-    <!-- load the serial nodes -->
-    <node name="serial_node" pkg="rosserial_python" type="serial_node.py" respawn="true" output="screen" args="tcp 11411" unless="$(arg simulation)"/>
-    <node name="rosserial_message_info" pkg="rosserial_python" type="message_info_service.py" unless="$(arg simulation)"/>
 
-
-  <!-- load the hardware interface -->
-  <node name="adroit_control" pkg="hdt_adroit_control" type="adroit_control" respawn="false" output="screen">
-    <param name="robot_name" value="hdt_arm" /> 
-    <param name="fake_execution" value="$(arg simulation)" /> 
+  <!-- We do not have a robot connected, so publish fake joint states -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+    <param name="use_gui" value="$(arg use_gui)"/>
+    <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
   </node>
 
-  <!-- load the actuator debug interface and rqt GUI for interacting with it-->
-  <node name="adroit_debug" pkg="hdt_adroit_debug" type="hdt_adroit_console" respawn="false" output="screen" if="$(arg debug)"/>
+  <!-- Given the published joint states, publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
 
-  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find hdt_adroit_debug)/config/debug_services.perspective" respawn="false" output="screen" if="$(arg debug)"/>
+  <!-- Run the main MoveIt! executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find hdt_6dof_a24_pincer_moveit)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="true"/>
+    <arg name="info" value="true"/>
+  </include>
   
-
-  <!-- load and start controllers for trajectory control-->
-  <node name="controller_manager_spawn" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn 
-  /hdt_arm/joint_state_controller 
-  /hdt_arm/arm_controller" />
-  
-  <!-- load but do not start controllers for joint by joint control-->
-  <node name="controller_manager_load" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load 
-  /hdt_arm/joint1_position_controller 
-  /hdt_arm/joint2_position_controller 
-  /hdt_arm/joint3_position_controller 
-  /hdt_arm/joint4_position_controller 
-  /hdt_arm/joint5_position_controller 
-  /hdt_arm/joint6_position_controller 
-  /hdt_arm/pincer_joint_position_controller 
-  /hdt_arm/joint1_velocity_controller 
-  /hdt_arm/joint2_velocity_controller 
-  /hdt_arm/joint3_velocity_controller 
-  /hdt_arm/joint4_velocity_controller 
-  /hdt_arm/joint5_velocity_controller 
-  /hdt_arm/joint6_velocity_controller 
-  /hdt_arm/pincer_joint_velocity_controller" />
-
-
-  <node name="rqt_multiplot" pkg="rqt_multiplot"  type="rqt_multiplot" respawn="false" output="screen" args="--force-discover --multiplot-config $(find hdt_6dof_a24_pincer_bringup)/support_files/multiplot.xml">
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+	args="-d $(find robokeeper)/rviz/moveit.rviz" output="screen">
+    <rosparam command="load" file="$(find hdt_6dof_a24_pincer_moveit)/config/kinematics.yaml"/>
   </node>
 
-  <!-- shell script to wait for /joint_states topic -->
-  <node name="delay_script" pkg="hdt_6dof_a24_pincer_bringup" type="delay_script.sh" args="$(arg controller_type)" output="screen"/>
+
 </launch>
