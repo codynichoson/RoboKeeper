@@ -4,16 +4,33 @@ import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
 from robokeeper.msg import xy_depth
+from apriltag_ros.msg import AprilTagDetectionArray
 import cv2
 import numpy as np
 
 class Transforms():
     def __init__(self):
-        rospy.Subscriber("Camera_Coordinates", xy_depth, self.callback_coords)
-        rospy.Subscriber("Camera_to_tag", xy_depth, self.callback_coords)
+        rospy.Subscriber("/xy_depth", xy_depth, self.callback_coords)
+        rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
 
+    def callback_coords(self,data):
+        # print(data)
+        #Get xyz of ball relative to camera
+        ball_coords = data
 
+    def tf(self,data):
+        transform = data
+        #Get the xyz of the first april tag. Does not mean the "first" tag but instead
+        #the tag with the smallest number that it sees currently.
+        #Ex. if id. 4 and id. 8 are in frame, get coords of id. 4
+        x = transform.detections[0].pose.pose.pose.position.x
+        y = transform.detections[0].pose.pose.pose.position.y
+        z = transform.detections[0].pose.pose.pose.position.z
+        # print(x)
 
+    def get_transform(self, R_camera_ball, R_camera_april_tag):
+        #Make the transforms but needs to be in the form of an matrix.
+        T = R_camera_ball@R_camera_april_tag #Placeholder, not correct
 if __name__=="__main__":
     rospy.init_node("Transform_node")
     T = Transforms()
