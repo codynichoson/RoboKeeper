@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+import rospy
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image, CameraInfo
+from robokeeper.msg import xy_depth
+import cv2
+import numpy as np
+
+class Transforms():
+    def __init__(self):
+        rospy.Subscriber("Camera_Coordinates", xy_depth, self.callback_coords)
+        rospy.Subscriber("Camera_to_tag", xy_depth, self.callback_coords)
+
+
+
+if __name__=="__main__":
+    rospy.init_node("Transform_node")
+    T = Transforms()
+    rospy.spin()
