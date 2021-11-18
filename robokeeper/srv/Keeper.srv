@@ -1,0 +1,4 @@
+# Start
+float32 pos
+---
+moveit_msgs/MoveItErrorCodes code
