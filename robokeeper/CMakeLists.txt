@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   message_generation
   std_msgs
+  geometry_msgs
+  moveit_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,11 +55,11 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Moveit.srv
+  Keeper.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -70,6 +72,8 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
+  moveit_msgs
     # Or other packages containing msgs
 )
 
@@ -105,7 +109,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robokeeper
- CATKIN_DEPENDS message_runtime std_msgs
+ CATKIN_DEPENDS message_runtime std_msgs geometry_msgs moveit_msgs
 #  DEPENDS system_lib
 )
 
@@ -162,6 +166,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   nodes/perception
   nodes/transforms
+  nodes/motion_control
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

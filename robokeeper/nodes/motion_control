@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+""" Use the node to use moveit control the Adroit follow commend
+    Offers three Service
+    SERVICE:
+        reset (std_srvs/Empty) - reset to keeper Home
+        keep (std_srvs/Empty) - reset to keeper Home
+        step (std_srvs/Pose) - move to a new point and add the point to
+        grap (std_srvs/Empty) - grap the object
+        free (std_srvs/Empty) - gree the object
+
+"""
+import sys
+import copy
+import rospy
+import moveit_commander
+import moveit_msgs.msg
+import geometry_msgs.msg
+from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
+from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
+from tf.transformations import quaternion_from_euler
+from  geometry_msgs.msg import Pose
+
+class MotionControl():
+    """ class MotionControl contain all function for the node
+        Provide four service
+    """
+    def __init__(self) -> None:
+        moveit_commander.roscpp_initialize(sys.argv)
+        rospy.init_node('motion', anonymous=True)
+        self.scene = moveit_commander.PlanningSceneInterface()
+        rospy.sleep(1)
+        self.robot = moveit_commander.RobotCommander()
+        base_pose = geometry_msgs.msg.PoseStamped()
+        base_pose.header.frame_id = 'base_link'
+        base_pose.pose.position.x = 0
+        base_pose.pose.position.y = 0
+        base_pose.pose.position.z = -0.5
+        base_pose.pose.orientation.w = 1.0
+        self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
+        rospy.sleep(1)
+        
+        group_name = "arm"
+        grap_group_name = "pincer"
+        self.move_group_commander = moveit_commander.MoveGroupCommander(group_name)
+        self.move_group_grap = moveit_commander.MoveGroupCommander(grap_group_name)
+        self.move_group_grap.set_max_velocity_scaling_factor(1)
+        self.move_group_grap.set_max_acceleration_scaling_factor(1)
+        self.move_group_commander.set_max_velocity_scaling_factor(1)
+        self.move_group_commander.set_max_acceleration_scaling_factor(1)
+        self.display_trajectory_publisher =\
+            rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
+        
+        self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
+        self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
+        self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
+        self.grap_srv = rospy.Service("grap", Empty, self.GrapCallback)
+        self.free_srv = rospy.Service("free", Empty, self.FreeCallback)
+
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        self.home_pose = Pose()
+        self.home_pose.position.x = 0.25
+        self.home_pose.position.z = 0.12
+        self.home_pose.orientation.x = quaternion[0]
+        self.home_pose.orientation.y = quaternion[1]
+        self.home_pose.orientation.z = quaternion[2]
+        self.home_pose.orientation.w = quaternion[3]
+
+        self.now_keep = False
+        
+
+    def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
+        """ Step callback function
+            parameter
+                req: MoveitRequest (Pose, bool)
+            return
+                rtn: MoveitResponse (MoveItErrorCodes)
+        """ 
+        res = MoveitResponse()
+        self.move_group_commander.set_pose_target(req.pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            res.code = error_code
+            return res
+        self.now_keep = True
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        if req.grep:
+            self.move_group_grap.go([0.3, 0, 0], wait=True)
+        else:
+            self.move_group_grap.go([0, 0, 0], wait=True)
+        self.move_group_grap.stop()
+        res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+        return res
+
+
+    def ResetCallback(self, req: EmptyRequest) -> EmptyResponse:
+        self.move_group_commander.set_pose_target(self.home_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        self.now_keep = 0
+        return EmptyResponse()
+
+
+    def KeeperCallback(self, req: KeeperRequest) -> KeeperResponse:
+        res = KeeperResponse()
+        if self.now_keep:
+            pose = copy.deepcopy(self.home_pose)
+            pose.position.y = req.pos
+            self.move_group_commander.set_pose_target(pose)
+            succ, plan, time, error_code = self.move_group_commander.plan()
+            if not succ:
+                self.move_group_commander.clear_pose_targets()
+                res.code = error_code
+                return res
+            self.move_group_commander.execute(plan, wait=True)
+            self.move_group_commander.stop()
+            self.move_group_commander.clear_pose_targets()
+            res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+            return res
+        else:
+            waypoints = []
+            wpose = self.move_group_commander.get_current_pose().pose
+            for i in range(20):
+                pose = copy.deepcopy(wpose)
+                pose.position.y += (1 + i) / 20 * (req.pos - wpose.position.y)
+                waypoints.append(pose)
+            plan, fraction = self.move_group_commander.compute_cartesian_path(
+                    waypoints, 0.01, 0.0)
+            self.move_group_commander.execute(plan, wait=True)
+        res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+        return res
+
+    def GrapCallback(self, req: EmptyRequest) -> EmptyResponse:
+        self.move_group_grap.go([0.0, 0.0, 0.0], wait=True)
+        self.move_group_grap.stop()
+        return EmptyResponse()
+    
+    def FreeCallback(self, req: EmptyRequest) -> EmptyResponse:
+        self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
+        self.move_group_grap.stop()
+        return EmptyResponse()
+
+
+
+def main():
+    motion_control = MotionControl()
+    rospy.spin()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass
