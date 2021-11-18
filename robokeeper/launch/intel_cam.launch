@@ -12,4 +12,5 @@
     <arg name="image_topic" value="image_raw"/>
   </include>
 
+  <node name="perception" pkg="robokeeper" type="perception" />
 </launch>
