@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="sim" default="false"/>
+
+  <!-- start robokeeper moveit setup  -->
+  <include file="$(find robokeeper)/launch/robokeeper_moveit.launch">
+    <arg name="fake_execution" value="$(arg sim)"/>
+  </include>
+
+  <node name="mover" pkg="robokeeper" type="motion_control" >
+  </node>
+
+</launch>
