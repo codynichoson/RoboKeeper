@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="fake_execution" default="false" />
+  
+  <!-- load robot description -->
+  <param name="robot_description"
+    command="$(find xacro)/xacro '$(find hdt_6dof_a24_pincer_description)/urdf/hdt_arm.xacro'" />
+
+  <!-- load the hardware configuration -->
+  <rosparam command="load" file="$(find hdt_6dof_a24_pincer_description)/config/hardware.yaml" />
+  
+  <!-- load the controller configuration -->
+  <rosparam command="load" file="$(find hdt_6dof_a24_pincer_description)/config/controllers.yaml" />
+  
+  <!-- load the serial nodes -->
+  <node name="serial_node" pkg="rosserial_python" type="serial_node.py" respawn="true" output="screen" args="tcp 11411" unless="$(arg fake_execution)"/>
+  <node name="rosserial_message_info" pkg="rosserial_python" type="message_info_service.py" unless="$(arg fake_execution)"/>
+
+  <!-- load the hardware interface -->
+  <node name="adroit_control" pkg="hdt_adroit_control" type="adroit_control" respawn="false" output="screen">
+    <param name="robot_name" value="hdt_arm" /> 
+    <param name="fake_execution" value="$(arg fake_execution)" /> 
+  </node>
+
+  <!-- load the controllers -->
+  <node name="controller_manager_spawn" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn 
+  /hdt_arm/joint_state_controller 
+  /hdt_arm/arm_controller" />
+
+  <node name="controller_manager_load" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="load 
+  /hdt_arm/joint1_position_controller 
+  /hdt_arm/joint2_position_controller 
+  /hdt_arm/joint3_position_controller 
+  /hdt_arm/joint4_position_controller 
+  /hdt_arm/joint5_position_controller 
+  /hdt_arm/joint6_position_controller 
+  /hdt_arm/pincer_joint_position_controller 
+  /hdt_arm/joint1_velocity_controller 
+  /hdt_arm/joint2_velocity_controller 
+  /hdt_arm/joint3_velocity_controller 
+  /hdt_arm/joint4_velocity_controller 
+  /hdt_arm/joint5_velocity_controller 
+  /hdt_arm/joint6_velocity_controller 
+  /hdt_arm/pincer_joint_velocity_controller" />
+
+  
+  <!-- publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+
+  <!-- start move group  -->
+  <include file="$(find hdt_6dof_a24_pincer_moveit)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="info" value="true"/>
+    <arg name="fake_execution" value="false"/>
+  </include>
+
+  <!-- start rviz -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+	args="-d $(find robokeeper)/rviz/moveit.rviz" output="screen">
+    <rosparam command="load" file="$(find hdt_6dof_a24_pincer_moveit)/config/kinematics.yaml"/>
+  </node>
+  
+
+</launch>
