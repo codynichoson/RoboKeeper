@@ -134,7 +134,7 @@ class MotionControl():
                 waypoints.append(pose)
             plan, fraction = self.move_group_commander.compute_cartesian_path(
                     waypoints, 0.01, 0.0)
-            self.move_group_commander.execute(plan, wait=True)
+            self.move_group_commander.execute(plan, wait=False)
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
         return res
 
