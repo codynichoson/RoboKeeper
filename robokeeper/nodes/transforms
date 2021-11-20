@@ -59,6 +59,7 @@ class Transforms():
         goalie_xyz.y = TRB[1][3]+0.1
         goalie_xyz.z = -TRB[2][3]
         self.pub.publish(goalie_xyz)
+        
 
         # print(x)
 
