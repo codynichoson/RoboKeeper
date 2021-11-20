@@ -37,7 +37,7 @@ class MotionControl():
         base_pose.header.frame_id = 'base_link'
         base_pose.pose.position.x = 0
         base_pose.pose.position.y = 0
-        base_pose.pose.position.z = -0.5
+        base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
         # Adding collision object to the planning scene to simulate table
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
@@ -63,7 +63,7 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
         self.home_pose.position.x = 0.25
-        self.home_pose.position.z = 0.12
+        self.home_pose.position.z = -0.22
         self.home_pose.orientation.x = quaternion[0]
         self.home_pose.orientation.y = quaternion[1]
         self.home_pose.orientation.z = quaternion[2]
