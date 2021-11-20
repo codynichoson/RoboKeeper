@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   xy_depth.msg
+  goalie_coord.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -3,7 +3,7 @@
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
-from robokeeper.msg import xy_depth
+from robokeeper.msg import xy_depth, goalie_coord
 from apriltag_ros.msg import AprilTagDetectionArray
 import cv2
 import numpy as np
@@ -14,6 +14,7 @@ class Transforms():
     def __init__(self):
         rospy.Subscriber("/xy_depth", xy_depth, self.callback_coords)
         rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
+        self.pub = rospy.Publisher("/goalie_coord", goalie_coord, queue_size=10)
 
     def callback_coords(self,data):
         # print(data)
@@ -45,11 +46,19 @@ class Transforms():
         TApril_Cam = mr.TransInv(TCam_April)
 
         # TRobot_April = np.array([ [1,0,0,-0.13],[0,1,0,0.45],[0,0,1,-0.69],[0,0,0,1] ])
-        TRobot_April = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.69],[0,0,0,1] ])
+        TRobot_April = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
         TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
         TRB = TRobot_April@TApril_Cam@TCamera_Ball
-        print([TRB[0][3]+0.58,TRB[1][3]-1.3,TRB[2][3]])
+        goalie_x = TRB[0][3]
+        goalie_y = TRB[1][3]+0.1
+        goalie_z = -TRB[2][3]
+        print([TRB[0][3],TRB[1][3]+0.1,-TRB[2][3]])
+        goalie_xyz = goalie_coord()
+        goalie_xyz.x = TRB[0][3]
+        goalie_xyz.y = TRB[1][3]+0.1
+        goalie_xyz.z = -TRB[2][3]
+        self.pub.publish(goalie_xyz)
 
         # print(x)
 
