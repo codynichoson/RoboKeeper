@@ -8,6 +8,7 @@
   </include>
 
   <node name="mover" pkg="robokeeper" type="motion_control" >
+    <remap from="/pincer_joint_position_controller/command" to="hdt_arm/pincer_joint_position_controller/command" />
   </node>
 
 </launch>
