@@ -5,9 +5,11 @@
         reset (std_srvs/Empty) - reset to keeper Home
         keep (std_srvs/Empty) - reset to keeper Home
         step (std_srvs/Pose) - move to a new point and add the point to
-        grap (std_srvs/Empty) - grap the object
-        free (std_srvs/Empty) - gree the object
+        close (std_srvs/Empty) - close the pincer
+        open (std_srvs/Empty) - open the pincer
 
+    SUBSCRIBERS:
+        goalie_coord (robokeeper/GoalieCoord) - 
 """
 import sys
 import copy
@@ -55,8 +57,8 @@ class MotionControl():
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
-        self.grap_srv = rospy.Service("grap", Empty, self.GrapCallback)
-        self.free_srv = rospy.Service("free", Empty, self.FreeCallback)
+        self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
+        self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
@@ -136,13 +138,13 @@ class MotionControl():
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
         return res
 
-    def GrapCallback(self, req: EmptyRequest) -> EmptyResponse:
+    def CloseCallback(self, req: EmptyRequest) -> EmptyResponse:
         # self.move_group_grap.go([0.0, 0.0, 0.0], wait=True)
         # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.1)
         return EmptyResponse()
     
-    def FreeCallback(self, req: EmptyRequest) -> EmptyResponse:
+    def OpenCallback(self, req: EmptyRequest) -> EmptyResponse:
         # self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
         # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.8)
