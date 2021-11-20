@@ -15,6 +15,7 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
 from tf.transformations import quaternion_from_euler
@@ -36,20 +37,21 @@ class MotionControl():
         base_pose.pose.position.y = 0
         base_pose.pose.position.z = -0.5
         base_pose.pose.orientation.w = 1.0
+        # Adding collision object to the planning scene to simulate table
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
         rospy.sleep(1)
         
         group_name = "arm"
-        grap_group_name = "pincer"
+        # grap_group_name = "pincer"
         self.move_group_commander = moveit_commander.MoveGroupCommander(group_name)
-        self.move_group_grap = moveit_commander.MoveGroupCommander(grap_group_name)
-        self.move_group_grap.set_max_velocity_scaling_factor(1)
-        self.move_group_grap.set_max_acceleration_scaling_factor(1)
+        # self.move_group_grap = moveit_commander.MoveGroupCommander(grap_group_name)
+        # self.move_group_grap.set_max_velocity_scaling_factor(1)
+        # self.move_group_grap.set_max_acceleration_scaling_factor(1)
         self.move_group_commander.set_max_velocity_scaling_factor(1)
         self.move_group_commander.set_max_acceleration_scaling_factor(1)
         self.display_trajectory_publisher =\
             rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
-        
+        self.pincer_pos_publisher = rospy.Publisher("/pincer_joint_position_controller/command", Float64,queue_size=10)
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -135,13 +137,15 @@ class MotionControl():
         return res
 
     def GrapCallback(self, req: EmptyRequest) -> EmptyResponse:
-        self.move_group_grap.go([0.0, 0.0, 0.0], wait=True)
-        self.move_group_grap.stop()
+        # self.move_group_grap.go([0.0, 0.0, 0.0], wait=True)
+        # self.move_group_grap.stop()
+        self.pincer_pos_publisher.publish(0.1)
         return EmptyResponse()
     
     def FreeCallback(self, req: EmptyRequest) -> EmptyResponse:
-        self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
-        self.move_group_grap.stop()
+        # self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
+        # self.move_group_grap.stop()
+        self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
 
 

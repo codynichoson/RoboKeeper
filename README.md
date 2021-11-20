@@ -1,7 +1,8 @@
 # RoboKeeper!
 ## Jonny Bosnich, Joshua Cho, Lio Liang, Marco Morales, Cody Nichoson 
 ****
-
+## Note
+edit `custom_ws/src/hdt_6dof_a24_pincer/hdt_6dof_a24_pincer_moveit/config/joint_limits.yaml` to make max velocities 2.5 instead of 0.785
 ## Overview
 The Robokeeper ROS Noetic package allows HDT Adroit 6-dof manipulator arm to play goalkeeper.
 
