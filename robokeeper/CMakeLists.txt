@@ -51,8 +51,8 @@ find_package(catkin REQUIRED COMPONENTS
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  xy_depth.msg
-  goalie_coord.msg
+  Xy_depth.msg
+  Goalie_coord.msg
 )
 
 ## Generate services in the 'srv' folder
