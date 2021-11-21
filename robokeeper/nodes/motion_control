@@ -83,12 +83,16 @@ class MotionControl():
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
+         return EmptyResponse()
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = False
+         return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
-        if len(self.position_buffer) != 0 and self.position_buffer[-1] - 0.04 < msg.y < self.position_buffer[-1] + 0.04 and -0.2 < msg.y < 0.2:
+        if len(self.position_buffer) == 0:
+            self.position_buffer.append(msg.y)
+        elif self.position_buffer[-1] - 0.04 < msg.y < self.position_buffer[-1] + 0.04 and -0.2 < msg.y < 0.2:
             self.position_buffer.append(msg.y)
         if len(self.position_buffer) > 15:
             self.position_buffer = []
@@ -106,7 +110,8 @@ class MotionControl():
             waypoints.append(pose)
         plan, fraction = self.move_group_commander.compute_cartesian_path(
                 waypoints, 0.01, 0.0)
-        self.move_group_commander.execute(plan, wait=False)   
+        self.move_group_commander.execute(plan, wait=True) 
+        self.position_buffer = []
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
         """ Step callback function
@@ -166,13 +171,13 @@ class MotionControl():
                 waypoints = []
                 wpose = copy.deepcopy(self.home_pose)
                 wpose.position.y = self.current_y
-                for i in range(10):
+                for i in range(4):
                     pose = copy.deepcopy(wpose)
-                    pose.position.y += (1 + i) / 10 * (req.pos - wpose.position.y)
+                    pose.position.y += (1 + i) / 4 * (req.pos - wpose.position.y)
                     waypoints.append(pose)
                 plan, fraction = self.move_group_commander.compute_cartesian_path(
-                        waypoints, 0.01, 0.0)
-                self.move_group_commander.execute(plan, wait=False)
+                        waypoints, 0.03, 0.0)
+                self.move_group_commander.execute(plan, wait=True)
             res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
             self.current_y = req.pos
             return res
