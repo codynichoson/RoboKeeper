@@ -20,6 +20,7 @@ import geometry_msgs.msg
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
+from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
 
@@ -57,6 +58,8 @@ class MotionControl():
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
+        self.keeping_srv = rospy.Service("start_keeping", Empty, self.KeepingCallback)
+        self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StopingCallback)
         self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
 
@@ -69,8 +72,41 @@ class MotionControl():
         self.home_pose.orientation.z = quaternion[2]
         self.home_pose.orientation.w = quaternion[3]
 
-        self.now_keep = False
-        
+        self.now_keep = True
+        self.current_y = 0
+
+        self.keeping = False
+        self.position_buffer = []
+        self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+        self.time = rospy.Timer(rospy.Duration(0.3), self.TimerCallback)
+
+
+    def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
+         self.keeping = True
+
+    def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
+         self.keeping = False
+
+    def PositionInputCallback(self, msg : Goalie_coord) -> None:
+        if len(self.position_buffer) != 0 and self.position_buffer[-1] - 0.04 < msg.y < self.position_buffer[-1] + 0.04 and -0.2 < msg.y < 0.2:
+            self.position_buffer.append(msg.y)
+        if len(self.position_buffer) > 15:
+            self.position_buffer = []
+
+    def TimerCallback(self, event) -> None:
+        if not self.keeping:
+            return
+        points = self.position_buffer
+        self.position_buffer = []
+        waypoints = []
+        wpose = self.home_pose
+        for p in points:
+            pose = copy.deepcopy(wpose)
+            pose.position.y = p
+            waypoints.append(pose)
+        plan, fraction = self.move_group_commander.compute_cartesian_path(
+                waypoints, 0.01, 0.0)
+        self.move_group_commander.execute(plan, wait=False)   
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
         """ Step callback function
@@ -105,37 +141,42 @@ class MotionControl():
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
-        self.now_keep = 0
+        self.now_keep = True
         return EmptyResponse()
 
 
     def KeeperCallback(self, req: KeeperRequest) -> KeeperResponse:
         res = KeeperResponse()
-        if self.now_keep:
-            pose = copy.deepcopy(self.home_pose)
-            pose.position.y = req.pos
-            self.move_group_commander.set_pose_target(pose)
-            succ, plan, time, error_code = self.move_group_commander.plan()
-            if not succ:
+        if  -0.2 < req.pos < 0.2:
+            if not self.now_keep:
+                pose = copy.deepcopy(self.home_pose)
+                pose.position.y = req.pos
+                self.move_group_commander.set_pose_target(pose)
+                succ, plan, time, error_code = self.move_group_commander.plan()
+                if not succ:
+                    self.move_group_commander.clear_pose_targets()
+                    res.code = error_code
+                    return res
+                self.move_group_commander.execute(plan, wait=True)
+                self.move_group_commander.stop()
                 self.move_group_commander.clear_pose_targets()
-                res.code = error_code
+                res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
                 return res
-            self.move_group_commander.execute(plan, wait=True)
-            self.move_group_commander.stop()
-            self.move_group_commander.clear_pose_targets()
+            else:
+                waypoints = []
+                wpose = copy.deepcopy(self.home_pose)
+                wpose.position.y = self.current_y
+                for i in range(10):
+                    pose = copy.deepcopy(wpose)
+                    pose.position.y += (1 + i) / 10 * (req.pos - wpose.position.y)
+                    waypoints.append(pose)
+                plan, fraction = self.move_group_commander.compute_cartesian_path(
+                        waypoints, 0.01, 0.0)
+                self.move_group_commander.execute(plan, wait=False)
             res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+            self.current_y = req.pos
             return res
-        else:
-            waypoints = []
-            wpose = self.move_group_commander.get_current_pose().pose
-            for i in range(20):
-                pose = copy.deepcopy(wpose)
-                pose.position.y += (1 + i) / 20 * (req.pos - wpose.position.y)
-                waypoints.append(pose)
-            plan, fraction = self.move_group_commander.compute_cartesian_path(
-                    waypoints, 0.01, 0.0)
-            self.move_group_commander.execute(plan, wait=False)
-        res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+        res.code.val = moveit_msgs.msg.MoveItErrorCodes.PLANNING_FAILED
         return res
 
     def CloseCallback(self, req: EmptyRequest) -> EmptyResponse:
