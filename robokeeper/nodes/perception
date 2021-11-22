@@ -46,6 +46,7 @@ class GetData(object):
         #Draw contours based on blurred image
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
+        
 
         try:
             #Find the largest contour
@@ -58,6 +59,7 @@ class GetData(object):
                 self.cx = int(M['m10']/M['m00'])
                 self.cy = int(M['m01']/M['m00'])
                 cv2.circle(img, (self.cx,self.cy), 10, (255,255,255), -1)
+                # cv2.rectangle(img, ((self.x)-50, (self.y)-50), ((self.x)+50, (self.y)+50), (255,255,255), 3)
 
         except:
             pass
