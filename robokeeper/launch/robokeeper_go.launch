@@ -2,10 +2,16 @@
 <launch>
   <arg name="sim" default="false"/>
 
+  <!-- start intel realsense camera -->
+  <include file="$(find robokeeper)/launch/intel_cam.launch"/>
+
   <!-- start robokeeper moveit setup  -->
   <include file="$(find robokeeper)/launch/robokeeper_moveit.launch">
     <arg name="fake_execution" value="$(arg sim)"/>
   </include>
+
+  <!-- start transforms node -->
+  <node name="transforms" pkg="robokeeper" type="transforms"/>
 
   <node name="mover" pkg="robokeeper" type="motion_control" output="screen">
     <remap from="/pincer_joint_position_controller/command" to="hdt_arm/pincer_joint_position_controller/command" />

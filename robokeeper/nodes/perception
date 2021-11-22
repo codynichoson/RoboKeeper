@@ -45,21 +45,20 @@ class GetData(object):
         num_cont = 0
         #Draw contours based on blurred image
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
-        
+        # cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
 
         try:
             #Find the largest contour
             cnt = max(contours,key=cv2.contourArea)
             #Create moment of largest contour
             M = cv2.moments(cnt)
-            rospy.logerr(len(cnt))
+            #rospy.logerr(len(cnt))
             if len(cnt) > 30:
                 #Find centroid of contour
                 self.cx = int(M['m10']/M['m00'])
                 self.cy = int(M['m01']/M['m00'])
-                cv2.circle(img, (self.cx,self.cy), 10, (255,255,255), -1)
-                # cv2.rectangle(img, ((self.x)-50, (self.y)-50), ((self.x)+50, (self.y)+50), (255,255,255), 3)
+                cv2.circle(img, (self.cx,self.cy), 5, (150,50,100), -1)
+                cv2.rectangle(img, (self.cx-25, self.cy-25), (self.cx+25, self.cy+25), (150,50,100), 3)
 
         except:
             pass
