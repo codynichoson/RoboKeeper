@@ -24,6 +24,7 @@ from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
+from traj_prediction.robokeeper_library import joint_lookup_table
 
 class MotionControl():
     """ class MotionControl contain all function for the node
@@ -94,35 +95,50 @@ class MotionControl():
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
         self.msg_count +=1
+        
         if not self.keeping or self.msg_count < 1:
             return
         self.msg_count = 0
+
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
-        if msg.y < -0.1:
+
+        if msg.y >-0.25 or msg.x <0.25:
+            value = joint_lookup_table(msg.y)
+            rospy.logerr(value)
+            # rospy.logerr(type(value))
             JointTrajectoryPoint_msg = JointTrajectoryPoint()
-            JointTrajectoryPoint_msg.positions = [-0.5499488955653875, -1.0584790458580682, -0.5108311916967199, 0.10508089078446038, 0.0, -1.1244422327738606, 0.1372954704410103]
-            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+            JointTrajectoryPoint_msg.positions = value
+            JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
             JointState_msg.points =[JointTrajectoryPoint_msg] 
             self.move_hdt_pub.publish(JointState_msg)
-        elif msg.y < 0:
-            JointTrajectoryPoint_msg = JointTrajectoryPoint()
-            JointTrajectoryPoint_msg.positions = [-0.1411305394477424, -1.0584790458580682, -0.5115982054980662, 0.7693148427504655, 0.0, -2.19979558226155, 0.1380624842423567]
-            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-            JointState_msg.points =[JointTrajectoryPoint_msg] 
-            self.move_hdt_pub.publish(JointState_msg)
-        elif msg.y < 0.1:
-            JointTrajectoryPoint_msg = JointTrajectoryPoint()
-            JointTrajectoryPoint_msg.positions = [0.2531145544443206, -1.0584790458580682, -0.5115982054980662, 0.7708488703531582, 0.0, -2.5948076899549593, 0.1380624842423567]
-            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-            JointState_msg.points =[JointTrajectoryPoint_msg] 
-            self.move_hdt_pub.publish(JointState_msg)
-        else:
-            JointTrajectoryPoint_msg = JointTrajectoryPoint()
-            JointTrajectoryPoint_msg.positions = [0.5292395229290341, -1.0584790458580682, -0.5108311916967199, 0.10891595979119251, 0.0, -2.2089997478777073, 0.1380624842423567]
-            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-            JointState_msg.points =[JointTrajectoryPoint_msg] 
-            self.move_hdt_pub.publish(JointState_msg)
+
+        
+        
+        # if msg.y < -0.1:
+        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        #     JointTrajectoryPoint_msg.positions = [-0.5499488955653875, -1.0584790458580682, -0.5108311916967199, 0.10508089078446038, 0.0, -1.1244422327738606, 0.1372954704410103]
+        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
+        #     self.move_hdt_pub.publish(JointState_msg)
+        # elif msg.y < 0:
+        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        #     JointTrajectoryPoint_msg.positions = [-0.1411305394477424, -1.0584790458580682, -0.5115982054980662, 0.7693148427504655, 0.0, -2.19979558226155, 0.1380624842423567]
+        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
+        #     self.move_hdt_pub.publish(JointState_msg)
+        # elif msg.y < 0.1:
+        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        #     JointTrajectoryPoint_msg.positions = [0.2531145544443206, -1.0584790458580682, -0.5115982054980662, 0.7708488703531582, 0.0, -2.5948076899549593, 0.1380624842423567]
+        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
+        #     self.move_hdt_pub.publish(JointState_msg)
+        # else:
+        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        #     JointTrajectoryPoint_msg.positions = [0.5292395229290341, -1.0584790458580682, -0.5108311916967199, 0.10891595979119251, 0.0, -2.2089997478777073, 0.1380624842423567]
+        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
+        #     self.move_hdt_pub.publish(JointState_msg)
 
 
 
