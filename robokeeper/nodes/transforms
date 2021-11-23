@@ -29,80 +29,64 @@ class Transforms():
     def tf(self,data):
         transform = data
 
-        self.x = transform.detections[0].pose.pose.pose.position.x
-        self.y = transform.detections[0].pose.pose.pose.position.y
-        self.z = transform.detections[0].pose.pose.pose.position.z
-        orientation_q = transform.detections[0].pose.pose.pose.orientation
-        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-        (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
-        # print(roll, pitch, yaw)
+        #Get data from tag 69
+        self.x1 = transform.detections[0].pose.pose.pose.position.x
+        self.y1 = transform.detections[0].pose.pose.pose.position.y
+        self.z1 = transform.detections[0].pose.pose.pose.position.z
+        orientation1 = transform.detections[0].pose.pose.pose.orientation
+        orientation_list1 = [orientation1.x, orientation1.y, orientation1.z, orientation1.w]
+        (roll1, pitch1, yaw1) = euler_from_quaternion (orientation_list1)
+        # print(roll, pitch1, yaw1)
         
+        #Get data from tag 420
+        self.x2 = transform.detections[1].pose.pose.pose.position.x
+        self.y2 = transform.detections[1].pose.pose.pose.position.y
+        self.z2 = transform.detections[1].pose.pose.pose.position.z
+        orientation2 = transform.detections[1].pose.pose.pose.orientation
+        orientation_list2 = [orientation2.x, orientation2.y, orientation2.z, orientation2.w]
+        (roll2, pitch2, yaw2) = euler_from_quaternion (orientation_list2)
 
-        translation = np.array([ [1,0,0,self.x],[0,1,0,self.y],[0,0,1,self.z],[0,0,0,1] ])
-        
-        # translation = np.array([ [1,0,0,-self.x],[0,1,0,-self.y],[0,0,1,self.z],[0,0,0,1] ])
-        Tx_rot = np.array([ [1,0,0,0],[0,np.cos(0),-np.sin(0),0],[0,np.sin(0),np.cos(0),0],[0,0,0,1] ])
-        Ty_rot = np.array([ [np.cos(pitch),0,np.sin(pitch),0],[0,1,0,0],[-np.sin(pitch),0,np.cos(pitch),0],[0,0,0,1] ])
-        Tz_rot = np.array([ [np.cos(yaw),-np.sin(yaw),0,0],[np.sin(yaw),np.cos(yaw),0,0],[0,0,1,0],[0,0,0,1] ])
-        Trot = Tz_rot@Ty_rot@Tx_rot
-        TCam_April = Trot@translation
-        TApril_Cam = mr.TransInv(TCam_April)
+        #Get the translation from the camera to april tag 69
+        translation1 = np.array([ [1,0,0,self.x1],[0,1,0,self.y1],[0,0,1,self.z1],[0,0,0,1] ])
+        #Get the translation from the camera to april tag 420   #CODY YOULL NEED TO EDIT THIS TO THE IDEAL LOCATION FOR THE PADDLE
+        translation2 = np.array([ [1,0,0,self.x2],[0,1,0,self.y2],[0,0,1,self.z2],[0,0,0,1] ])
 
-        # TRobot_April = np.array([ [1,0,0,-0.13],[0,1,0,0.45],[0,0,1,-0.69],[0,0,0,1] ])
-        TRobot_April = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
+        #transforms for the camera to april tag 69
+        Tx_rot1 = np.array([ [1,0,0,0],[0,np.cos(0),-np.sin(0),0],[0,np.sin(0),np.cos(0),0],[0,0,0,1] ])
+        Ty_rot1 = np.array([ [np.cos(pitch1),0,np.sin(pitch1),0],[0,1,0,0],[-np.sin(pitch1),0,np.cos(pitch1),0],[0,0,0,1] ])
+        Tz_rot1 = np.array([ [np.cos(yaw1),-np.sin(yaw1),0,0],[np.sin(yaw1),np.cos(yaw1),0,0],[0,0,1,0],[0,0,0,1] ])
+        Trot1 = Tz_rot1@Ty_rot1@Tx_rot1
+        TCam_April1 = Trot1@translation1
+        TApril_Cam1 = mr.TransInv(TCam_April1)
+
+
+        #transforms for the camera to april tag 420
+        Tx_rot2 = np.array([ [1,0,0,0],[0,np.cos(0),-np.sin(0),0],[0,np.sin(0),np.cos(0),0],[0,0,0,1] ])
+        Ty_rot2 = np.array([ [np.cos(pitch2),0,np.sin(pitch2),0],[0,1,0,0],[-np.sin(pitch2),0,np.cos(pitch2),0],[0,0,0,1] ])
+        Tz_rot2 = np.array([ [np.cos(yaw2),-np.sin(yaw2),0,0],[np.sin(yaw2),np.cos(yaw2),0,0],[0,0,1,0],[0,0,0,1] ])
+        Trot2 = Tz_rot2@Ty_rot2@Tx_rot2
+        TCam_April2 = Trot2@translation2
+        TApril_Cam2 = mr.TransInv(TCam_April2)
+
+        #For the first april tag, get the translation from the base of the robot to april tag 69
+        TRobot_April1 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
+        #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
+        TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
         TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
-        TRB = TRobot_April@TApril_Cam@TCamera_Ball
-        goalie_x = TRB[0][3]
-        goalie_y = TRB[1][3]
-        goalie_z = -TRB[2][3]
-        print([TRB[0][3],-TRB[1][3]-0.27,-TRB[2][3]])
+        TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
+
+        TR_PADDLE = TRobot_April2@TApril_Cam2
         goalie_xyz = Goalie_coord()
         goalie_xyz.x = TRB[0][3]
         goalie_xyz.y = -TRB[1][3]-0.27
         goalie_xyz.z = -TRB[2][3]
 
-        # if self.count == 15:
-        #     self.__keeper(goalie_xyz.y)
-        #     self.count = 0
-        # self.count +=1
 
         self.pub.publish(goalie_xyz)
-        
+ 
 
-        # print(x)
-
-    def get_transform(self, R_camera_ball, R_camera_april_tag):
-        #Make the transforms but needs to be in the form of an matrix.
-        
-        x_rot = np.array([ [1,0,0,0],[0,np.cos(theta),-np.sin(theta),0],[0,np.sin(theta),np.cos(theta),0],[0,0,0,1] ])
-        y_rot = np.array([ [np.cos(theta),0,np.sin(theta),0],[0,1,0,0],[-np.sin(theta),0,np.cos(theta),0],[0,0,0,1] ])
-        z_rot = np.array([ [np.cos(theta),-np.sin(theta),0,0],[np.sin(theta),np.cos(theta),0,0],[0,0,1,0],[0,0,0,1] ])
-
-        T_Camera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
-        T_Camera_April = np.array([ [1,0,0,self.x],[0,1,0,self.y],[0,0,1,self.z],[0,0,0,1] ])
-        T_Robot_April = np.array([ [1,0,0,self.x],[0,1,0,self.y],[0,0,1,self.z],[0,0,0,1] ])
-    def not_used(self,data):
-        orientation_q = transform.detections[0].pose.pose.pose.orientation
-        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-        (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
-        print(roll, pitch, yaw)
-        T_April_Robot = np.array([ [1,0,0,0],[0,1,0,0.45],[0,0,1,-0.69],[0,0,0,1] ])
-
-        # translation = np.array([ [1,0,0,self.x],[0,1,0,self.y],[0,0,1,self.z],[0,0,0,1] ])
-        translation = np.array([ [1,0,0,-self.x],[0,1,0,-self.y],[0,0,1,self.z],[0,0,0,1] ])
-        x_rot = np.array([ [1,0,0,0],[0,np.cos(roll),-np.sin(roll),0],[0,np.sin(roll),np.cos(roll),0],[0,0,0,1] ])
-        y_rot = np.array([ [np.cos(pitch),0,np.sin(pitch),0],[0,1,0,0],[-np.sin(pitch),0,np.cos(pitch),0],[0,0,0,1] ])
-        z_rot = np.array([ [np.cos(yaw),-np.sin(yaw),0,0],[np.sin(yaw),np.cos(yaw),0,0],[0,0,1,0],[0,0,0,1] ])
-        RCam_Robot = z_rot@y_rot@x_rot@translation
-        
    
-        T_Camera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
-        R = T_Camera_Ball@R
-        print(R)
-
-        # print(x)
-    
 
 if __name__=="__main__":
     rospy.init_node("Transform_node")
