@@ -23,6 +23,7 @@ from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, Keeper
 from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
 
 class MotionControl():
     """ class MotionControl contain all function for the node
@@ -55,6 +56,7 @@ class MotionControl():
         self.display_trajectory_publisher =\
             rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
         self.pincer_pos_publisher = rospy.Publisher("/pincer_joint_position_controller/command", Float64,queue_size=10)
+        self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -62,6 +64,7 @@ class MotionControl():
         self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StopingCallback)
         self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
+        self.Move_hdt_srv = rospy.Service("Move_hdt", Empty, self.Move_hdt)### Marco added this
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
@@ -75,10 +78,10 @@ class MotionControl():
         self.now_keep = True
         self.current_y = 0
 
+        self.msg_count = 0
         self.keeping = False
-        self.position_buffer = []
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
-        self.time = rospy.Timer(rospy.Duration(0.3), self.TimerCallback)
+
 
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
@@ -90,28 +93,38 @@ class MotionControl():
          return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
-        if len(self.position_buffer) == 0:
-            self.position_buffer.append(msg.y)
-        elif self.position_buffer[-1] - 0.04 < msg.y < self.position_buffer[-1] + 0.04 and -0.2 < msg.y < 0.2:
-            self.position_buffer.append(msg.y)
-        if len(self.position_buffer) > 15:
-            self.position_buffer = []
-
-    def TimerCallback(self, event) -> None:
-        if not self.keeping:
+        self.msg_count +=1
+        if not self.keeping or self.msg_count < 1:
             return
-        points = self.position_buffer
-        self.position_buffer = []
-        waypoints = []
-        wpose = self.home_pose
-        for p in points:
-            pose = copy.deepcopy(wpose)
-            pose.position.y = p
-            waypoints.append(pose)
-        plan, fraction = self.move_group_commander.compute_cartesian_path(
-                waypoints, 0.01, 0.0)
-        self.move_group_commander.execute(plan, wait=True) 
-        self.position_buffer = []
+        self.msg_count = 0
+        JointState_msg = JointTrajectory()
+        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+        if msg.y < -0.1:
+            JointTrajectoryPoint_msg = JointTrajectoryPoint()
+            JointTrajectoryPoint_msg.positions = [-0.5499488955653875, -1.0584790458580682, -0.5108311916967199, 0.10508089078446038, 0.0, -1.1244422327738606, 0.1372954704410103]
+            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+            JointState_msg.points =[JointTrajectoryPoint_msg] 
+            self.move_hdt_pub.publish(JointState_msg)
+        elif msg.y < 0:
+            JointTrajectoryPoint_msg = JointTrajectoryPoint()
+            JointTrajectoryPoint_msg.positions = [-0.1411305394477424, -1.0584790458580682, -0.5115982054980662, 0.7693148427504655, 0.0, -2.19979558226155, 0.1380624842423567]
+            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+            JointState_msg.points =[JointTrajectoryPoint_msg] 
+            self.move_hdt_pub.publish(JointState_msg)
+        elif msg.y < 0.1:
+            JointTrajectoryPoint_msg = JointTrajectoryPoint()
+            JointTrajectoryPoint_msg.positions = [0.2531145544443206, -1.0584790458580682, -0.5115982054980662, 0.7708488703531582, 0.0, -2.5948076899549593, 0.1380624842423567]
+            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+            JointState_msg.points =[JointTrajectoryPoint_msg] 
+            self.move_hdt_pub.publish(JointState_msg)
+        else:
+            JointTrajectoryPoint_msg = JointTrajectoryPoint()
+            JointTrajectoryPoint_msg.positions = [0.5292395229290341, -1.0584790458580682, -0.5108311916967199, 0.10891595979119251, 0.0, -2.2089997478777073, 0.1380624842423567]
+            JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
+            JointState_msg.points =[JointTrajectoryPoint_msg] 
+            self.move_hdt_pub.publish(JointState_msg)
+
+
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
         """ Step callback function
@@ -194,6 +207,36 @@ class MotionControl():
         # self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
         # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.8)
+        return EmptyResponse()
+    
+    def Move_hdt(self,req:EmptyRequest) -> EmptyResponse:  ### Marco added this
+        JointState_msg = JointTrajectory()
+        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        
+        JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        JointTrajectoryPoint_msg.positions = [-1, -1.1167720947603965, -0.5238704263196091, 0.3766037764610953, 0.02224340023904636, -2.3946170878035424]
+        JointTrajectoryPoint_msg.time_from_start.nsecs = 500000000
+
+        JointState_msg.points =[JointTrajectoryPoint_msg] 
+        self.move_hdt_pub.publish(JointState_msg)
+        rospy.sleep(1)
+        JointState_msg = JointTrajectory()
+        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        
+        JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        JointTrajectoryPoint_msg.positions = [1, -1.1167720947603965, -0.5238704263196091, 0.3766037764610953, 0.02224340023904636, -2.3946170878035424]
+        # JointTrajectoryPoint_msg.velocities = [0.0, 0.0012207403790398877, 0.0, 0.0, 0.0, 0.0, 0.0004882961516159551]
+        # JointTrajectoryPoint_msg.accelerations = []
+        # JointTrajectoryPoint_msg.accelerations = [0,0,0,0,0,0,0]
+        # JointTrajectoryPoint_msg.effort = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 16.203619495223855]
+        JointTrajectoryPoint_msg.time_from_start.nsecs = 500000000
+
+        JointState_msg.points =[JointTrajectoryPoint_msg] 
+        self.move_hdt_pub.publish(JointState_msg)
+        rospy.logerr('erOR')
+
         return EmptyResponse()
 
 
