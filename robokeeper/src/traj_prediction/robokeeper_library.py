@@ -93,7 +93,8 @@ def joint_lookup_table(y_pos):
     }
 
     y_pos_cm = round(y_pos, 2)
-    print(lookup_dict[y_pos_cm])
+    # print(lookup_dict[y_pos_cm])
+    return lookup_dict[y_pos_cm]
 
 def get_rosbag_data():
     '''
