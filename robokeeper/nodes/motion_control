@@ -9,7 +9,8 @@
         open (std_srvs/Empty) - open the pincer
 
     SUBSCRIBERS:
-        goalie_coord (robokeeper/GoalieCoord) - 
+        ball_xyz (robokeeper/coordinates) - 
+        paddle_xyz (robokeeper/coordinates) -
 """
 import sys
 import copy
@@ -20,7 +21,7 @@ import geometry_msgs.msg
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
-from robokeeper.msg import Goalie_coord
+from robokeeper.msg import coordinates
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
@@ -81,7 +82,8 @@ class MotionControl():
 
         self.msg_count = 0
         self.keeping = False
-        self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+        self.sub = rospy.Subscriber("/ball_xyz", coordinates, self.BallPositionInputCallback)
+        self.sub_paddle = rospy.Subscriber("/paddle_xyz", coordinates, self.PaddlePositionInputCallback)
 
 
 
@@ -93,7 +95,7 @@ class MotionControl():
          self.keeping = False
          return EmptyResponse()
 
-    def PositionInputCallback(self, msg : Goalie_coord) -> None:
+    def BallPositionInputCallback(self, msg : coordinates) -> None:
         self.msg_count +=1
         
         if not self.keeping or self.msg_count < 1:
@@ -112,6 +114,9 @@ class MotionControl():
             JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
             JointState_msg.points =[JointTrajectoryPoint_msg] 
             self.move_hdt_pub.publish(JointState_msg)
+
+    def PaddlePositionInputCallback(self, msg : coordinates) -> None: # Added by Cody
+        pass
 
         
         

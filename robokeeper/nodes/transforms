@@ -3,7 +3,7 @@
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
-from robokeeper.msg import Xy_depth, Goalie_coord
+from robokeeper.msg import xy_depth, coordinates
 from apriltag_ros.msg import AprilTagDetectionArray
 import cv2
 import numpy as np
@@ -13,9 +13,10 @@ import modern_robotics as mr
 
 class Transforms():
     def __init__(self):
-        rospy.Subscriber("/Xy_depth", Xy_depth, self.callback_coords)
+        rospy.Subscriber("/xy_depth", xy_depth, self.callback_coords)
         rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
-        self.pub = rospy.Publisher("/Goalie_coord", Goalie_coord, queue_size=10)
+        self.pub = rospy.Publisher("/goalie_coord", coordinates, queue_size=10)
+        self.pub_paddle = rospy.Publisher("/paddle_coord", coordinates, queue_size=10)
         self.__keeper = rospy.ServiceProxy("keep",Keeper)
         self.count = 0
 
@@ -57,8 +58,7 @@ class Transforms():
         Tz_rot1 = np.array([ [np.cos(yaw1),-np.sin(yaw1),0,0],[np.sin(yaw1),np.cos(yaw1),0,0],[0,0,1,0],[0,0,0,1] ])
         Trot1 = Tz_rot1@Ty_rot1@Tx_rot1
         TCam_April1 = Trot1@translation1
-        TApril_Cam1 = mr.TransInv(TCam_April1)
-
+        TApril1_Cam = mr.TransInv(TCam_April1)
 
         #transforms for the camera to april tag 420
         Tx_rot2 = np.array([ [1,0,0,0],[0,np.cos(0),-np.sin(0),0],[0,np.sin(0),np.cos(0),0],[0,0,0,1] ])
@@ -66,27 +66,39 @@ class Transforms():
         Tz_rot2 = np.array([ [np.cos(yaw2),-np.sin(yaw2),0,0],[np.sin(yaw2),np.cos(yaw2),0,0],[0,0,1,0],[0,0,0,1] ])
         Trot2 = Tz_rot2@Ty_rot2@Tx_rot2
         TCam_April2 = Trot2@translation2
-        TApril_Cam2 = mr.TransInv(TCam_April2)
+        TApril2_Cam = mr.TransInv(TCam_April2)
 
         #For the first april tag, get the translation from the base of the robot to april tag 69
         TRobot_April1 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
         #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
         TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
+        # Ball in camera frame
         TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
-        TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
 
-        TR_PADDLE = TRobot_April2@TApril_Cam2
-        goalie_xyz = Goalie_coord()
-        goalie_xyz.x = TRB[0][3]
-        goalie_xyz.y = -TRB[1][3]-0.27
-        goalie_xyz.z = -TRB[2][3]
+        # Ball in robot frame
+        Trobot_ball = TRobot_April1@TApril1_Cam@TCamera_Ball
 
+        # Save ball in robot frame coordinates into variable
+        ball_xyz = coordinates()
+        ball_xyz.x = Trobot_ball[0][3]
+        ball_xyz.y = -Trobot_ball[1][3]-0.27
+        ball_xyz.z = -Trobot_ball[2][3]
 
-        self.pub.publish(goalie_xyz)
+        # Paddle in robot frame
+        Trobot_paddle = TRobot_April2@TApril2_Cam
+
+        # Save paddle in robot frame coordinates into variable
+        paddle_xyz = coordinates()
+        paddle_xyz.x = Trobot_paddle[0][3]
+        paddle_xyz.y = -Trobot_paddle[1][3]-0.27
+        paddle_xyz.z = -Trobot_paddle[2][3]
+
+        # Publish 
+        self.pub.publish(ball_xyz)
+        self.pub_paddle.publish(paddle_xyz)
  
 
-   
 
 if __name__=="__main__":
     rospy.init_node("Transform_node")
