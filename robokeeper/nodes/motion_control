@@ -24,7 +24,7 @@ from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
-from traj_prediction.robokeeper_library import joint_lookup_table, traj_linear_reg
+from traj_prediction.robokeeper_library import joint_lookup_table
 
 class MotionControl():
     """ class MotionControl contain all function for the node
@@ -83,12 +83,6 @@ class MotionControl():
         self.keeping = False
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
 
-        # implementing trajectory prediction 
-        self.x_train = []
-        self.y_train = []
-
-
-
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
          return EmptyResponse()
@@ -101,27 +95,14 @@ class MotionControl():
         self.msg_count +=1
         
         if not self.keeping or self.msg_count < 1:
-            self.msg_count = 0
             return
+        self.msg_count = 0
 
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
-        # implementing trajectory prediction
-        self.x_train.append(msg.x)
-        self.y_train.append(msg.y)
-
-        if len(self.x_train) == 5:
-            x_goal = -1.27  # As of Nov 21, 8pm will this change
-            y_predict = traj_linear_reg(self.x_train, self.y_train, x_goal)
-
-            # make sure y_predict is within the goal limits
-            if y_predict < -0.25:
-                y_predict = -0.25
-            if y_predict > 0.25:
-                y_predict = 0.25
-
-            value = joint_lookup_table(y_predict)
+        if msg.y >-0.25 or msg.x <0.25:
+            value = joint_lookup_table(msg.y)
             rospy.logerr(value)
             # rospy.logerr(type(value))
             JointTrajectoryPoint_msg = JointTrajectoryPoint()
@@ -129,6 +110,8 @@ class MotionControl():
             JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
             JointState_msg.points =[JointTrajectoryPoint_msg] 
             self.move_hdt_pub.publish(JointState_msg)
+
+        
         
         # if msg.y < -0.1:
         #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
