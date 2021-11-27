@@ -196,7 +196,7 @@ class MotionControl():
 
     def KeeperCallback(self, req: KeeperRequest) -> KeeperResponse:
         res = KeeperResponse()
-        if  -0.2 < req.pos < 0.2:
+        if  -0.3 < req.pos < 0.3:
             if not self.now_keep:
                 pose = copy.deepcopy(self.home_pose)
                 pose.position.y = req.pos
