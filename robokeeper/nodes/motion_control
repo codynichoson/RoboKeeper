@@ -22,7 +22,7 @@ from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
 from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
-from  geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
 from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
@@ -82,6 +82,10 @@ class MotionControl():
         self.msg_count = 0
         self.keeping = False
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+
+        # Jonny added this, to be used for linear regression
+        self.x_train = []
+        self.y_train = []
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
