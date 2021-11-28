@@ -24,7 +24,7 @@ from robokeeper.msg import Goalie_coord
 from tf.transformations import quaternion_from_euler
 from  geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
-from traj_prediction.robokeeper_library import joint_lookup_table
+from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
 class MotionControl():
     """ class MotionControl contain all function for the node
@@ -101,7 +101,7 @@ class MotionControl():
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
-        if msg.y >-0.25 or msg.x <0.25:
+        if msg.y >-0.25 or msg.y <0.25:
             value = joint_lookup_table(msg.y)
             rospy.logerr(value)
             # rospy.logerr(type(value))
