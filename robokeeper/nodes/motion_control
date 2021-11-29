@@ -17,6 +17,7 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+import numpy as np
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
@@ -84,8 +85,11 @@ class MotionControl():
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
 
         # Jonny added this, to be used for linear regression
-        self.x_train = []
-        self.y_train = []
+        self.train_num = 10
+        self.x_train = np.zeros(self.train_num)
+        self.y_train = np.zeros(self.train_num)
+        self.stop_flag = False
+        self.train_count = 0  # Temporarily using this instead of self.msg_count
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
@@ -98,50 +102,44 @@ class MotionControl():
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
         self.msg_count +=1
         
-        if not self.keeping or self.msg_count < 1:
+        # Don't want the arm to move
+        if not self.keeping or self.stop_flag:
+            self.msg_count = 0
             return
-        self.msg_count = 0
 
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
-        if msg.y >-0.25 or msg.y <0.25:
-            value = joint_lookup_table(msg.y)
-            rospy.logerr(value)
-            # rospy.logerr(type(value))
+        # Implementing trajectory prediction
+        if self.msg_count <= self.train_num:
+            rospy.logwarn('TRAIN')
+            self.x_train[self.msg_count-1] = msg.x
+            self.y_train[self.msg_count-1] = msg.y
+
+        if self.msg_count == self.train_num:  # Once you have sufficient training data
+            rospy.logwarn('MOVE!!')
+            rospy.logwarn(self.x_train)
+            rospy.logwarn(self.y_train)
+            x_goal = -1.07
+            y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
+            rospy.logwarn(y_predicted)
+
+            value = joint_lookup_table(y_predicted)
             JointTrajectoryPoint_msg = JointTrajectoryPoint()
             JointTrajectoryPoint_msg.positions = value
             JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-            JointState_msg.points =[JointTrajectoryPoint_msg] 
+            JointState_msg.points = [JointTrajectoryPoint_msg] 
             self.move_hdt_pub.publish(JointState_msg)
 
-        
-        
-        # if msg.y < -0.1:
-        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        #     JointTrajectoryPoint_msg.positions = [-0.5499488955653875, -1.0584790458580682, -0.5108311916967199, 0.10508089078446038, 0.0, -1.1244422327738606, 0.1372954704410103]
-        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
-        #     self.move_hdt_pub.publish(JointState_msg)
-        # elif msg.y < 0:
-        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        #     JointTrajectoryPoint_msg.positions = [-0.1411305394477424, -1.0584790458580682, -0.5115982054980662, 0.7693148427504655, 0.0, -2.19979558226155, 0.1380624842423567]
-        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
-        #     self.move_hdt_pub.publish(JointState_msg)
-        # elif msg.y < 0.1:
-        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        #     JointTrajectoryPoint_msg.positions = [0.2531145544443206, -1.0584790458580682, -0.5115982054980662, 0.7708488703531582, 0.0, -2.5948076899549593, 0.1380624842423567]
-        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
-        #     self.move_hdt_pub.publish(JointState_msg)
-        # else:
-        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        #     JointTrajectoryPoint_msg.positions = [0.5292395229290341, -1.0584790458580682, -0.5108311916967199, 0.10891595979119251, 0.0, -2.2089997478777073, 0.1380624842423567]
-        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 200000000
-        #     JointState_msg.points =[JointTrajectoryPoint_msg] 
-        #     self.move_hdt_pub.publish(JointState_msg)
+            self.stop_flag = True # No further movement commands
 
+        # value = joint_lookup_table(msg.y)
+        # rospy.logerr(value)
+        # JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        # JointTrajectoryPoint_msg.positions = value
+        # JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
+        # JointState_msg.points =[JointTrajectoryPoint_msg] 
+        # self.move_hdt_pub.publish(JointState_msg)
 
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
@@ -256,7 +254,6 @@ class MotionControl():
         rospy.logerr('erOR')
 
         return EmptyResponse()
-
 
 
 def main():
