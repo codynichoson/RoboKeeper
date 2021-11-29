@@ -122,6 +122,14 @@ class MotionControl():
             rospy.logwarn(self.y_train)
             x_goal = -1.07
             y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
+
+            # Ensure the arm doesn't move beyond the goal limits
+            if y_predicted < -0.25:
+                rospy.logwarn('ball is too far left')
+                y_predicted = -0.25
+            if y_predicted > 0.25:
+                y_predicted = 0.25
+                rospy.logwarn('ball is too far right')
             rospy.logwarn(y_predicted)
 
             value = joint_lookup_table(y_predicted)
