@@ -13,15 +13,30 @@ import modern_robotics as mr
 
 class Transforms():
     def __init__(self):
+        """
+        Initialize class.
+        """
+        # Subscribe to /xy_depth to get ball data from camera
         rospy.Subscriber("/xy_depth", xy_depth, self.callback_coords)
+
+        # Subscribe to /tag_detections to get AprilTag configurations
         rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
+
+        # Set up publisher to publish ball coordinates in robot frame
         self.pub = rospy.Publisher("/goalie_coord", coordinates, queue_size=10)
+
+        # Set up publisher to publish coordinates of ping pong paddle holster
         self.pub_paddle = rospy.Publisher("/paddle_coord", coordinates, queue_size=10)
+
+        # Bring in keep service from motion_control
         self.__keeper = rospy.ServiceProxy("keep",Keeper)
+
         self.count = 0
 
     def callback_coords(self,data):
-        # print(data)
+        """
+        This callback function is called everytime the /xy_depth subscriber gets data.
+        """
         #Get xyz of ball relative to camera
         self.ball_x = data.x
         self.ball_y = data.y
@@ -29,6 +44,10 @@ class Transforms():
         self.ball_flag = data.flag
 
     def tf(self,data):
+        """
+        This function performs the transforms to find the location of the ball in the 
+        robot frame from the location of the ball in the camera frame.
+        """
         transform = data
 
         #Get data from tag 69
@@ -37,8 +56,7 @@ class Transforms():
         self.z1 = transform.detections[0].pose.pose.pose.position.z
         orientation1 = transform.detections[0].pose.pose.pose.orientation
         orientation_list1 = [orientation1.x, orientation1.y, orientation1.z, orientation1.w]
-        (roll1, pitch1, yaw1) = euler_from_quaternion (orientation_list1)
-        # print(roll, pitch1, yaw1)
+        (roll1, pitch1, yaw1) = euler_from_quaternion(orientation_list1)
         
         #Get data from tag 420
         self.x2 = transform.detections[1].pose.pose.pose.position.x
@@ -50,6 +68,7 @@ class Transforms():
 
         #Get the translation from the camera to april tag 69
         translation1 = np.array([ [1,0,0,self.x1],[0,1,0,self.y1],[0,0,1,self.z1],[0,0,0,1] ])
+        
         #Get the translation from the camera to april tag 420   #CODY YOULL NEED TO EDIT THIS TO THE IDEAL LOCATION FOR THE PADDLE
         translation2 = np.array([ [1,0,0,self.x2],[0,1,0,self.y2],[0,0,1,self.z2],[0,0,0,1] ])
 
@@ -71,6 +90,7 @@ class Transforms():
 
         #For the first april tag, get the translation from the base of the robot to april tag 69
         TRobot_April1 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
+
         #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
         TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
@@ -79,7 +99,7 @@ class Transforms():
         elif self.ball_flag == 0:
             TCamera_Ball = np.array([ [1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1] ])
             
-        TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
+        TRB = TRobot_April1@TApril1_Cam@TCamera_Ball
 
         # Ball in robot frame
         Trobot_ball = TRobot_April1@TApril1_Cam@TCamera_Ball
@@ -95,13 +115,12 @@ class Transforms():
 
         if self.ball_flag == 1:
             self.pub.publish(ball_xyz)
- 
-
 
 if __name__=="__main__":
+    # Initialize node
     rospy.init_node("Transform_node")
-    T = Transforms()
-    rospy.spin()
 
-    # Rc_r Rc_b
-    # Rrw_c * Rc_b
+    # Instantiate class
+    T = Transforms()
+
+    rospy.spin()
