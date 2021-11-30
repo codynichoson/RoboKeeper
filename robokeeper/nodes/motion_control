@@ -101,7 +101,8 @@ class MotionControl():
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
         self.msg_count +=1
-        
+        #rospy.loginfo(f"x-coord: {msg.x}, y-coord: {msg.y}")
+
         # Don't want the arm to move
         if not self.keeping or self.stop_flag:
             self.msg_count = 0
@@ -124,13 +125,13 @@ class MotionControl():
             y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
 
             # Ensure the arm doesn't move beyond the goal limits
+            rospy.loginfo(f"predicted y-coord: {y_predicted}")
             if y_predicted < -0.25:
-                rospy.logwarn('ball is too far left')
+                rospy.logwarn('ball is too far right')
                 y_predicted = -0.25
             if y_predicted > 0.25:
                 y_predicted = 0.25
-                rospy.logwarn('ball is too far right')
-            rospy.logwarn(y_predicted)
+                rospy.logwarn('ball is too far left')
 
             value = joint_lookup_table(y_predicted)
             JointTrajectoryPoint_msg = JointTrajectoryPoint()
@@ -141,12 +142,12 @@ class MotionControl():
 
             self.stop_flag = True # No further movement commands
 
-        # value = joint_lookup_table(msg.y)
-        # rospy.logerr(value)
+        # value = joint_lookup_table(msg.y - 0.04)
+        # # rospy.loginfo(f"y-value: {msg.y}")
         # JointTrajectoryPoint_msg = JointTrajectoryPoint()
         # JointTrajectoryPoint_msg.positions = value
         # JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-        # JointState_msg.points =[JointTrajectoryPoint_msg] 
+        # JointState_msg.points = [JointTrajectoryPoint_msg] 
         # self.move_hdt_pub.publish(JointState_msg)
 
 

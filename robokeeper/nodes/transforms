@@ -25,6 +25,7 @@ class Transforms():
         self.ball_x = data.x
         self.ball_y = data.y
         self.ball_z = data.depth
+        self.ball_flag = data.flag
 
     def tf(self,data):
         transform = data
@@ -73,7 +74,11 @@ class Transforms():
         #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
         TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
-        TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
+        if self.ball_flag == 1:
+            TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
+        elif self.ball_flag == 0:
+            TCamera_Ball = np.array([ [1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1] ])
+            
         TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
 
         TR_PADDLE = TRobot_April2@TApril_Cam2
@@ -82,8 +87,8 @@ class Transforms():
         goalie_xyz.y = -TRB[1][3]-0.27
         goalie_xyz.z = -TRB[2][3]
 
-
-        self.pub.publish(goalie_xyz)
+        if self.ball_flag == 1:
+            self.pub.publish(goalie_xyz)
  
 
    
