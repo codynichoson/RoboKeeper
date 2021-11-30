@@ -1,7 +1,7 @@
 from setuptools import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 d = generate_distutils_setup(
-    packages=['traj_prediction'],
+    packages=['robokeeper_library'],
     package_dir={'': 'src'}
     )
 setup(**d)
