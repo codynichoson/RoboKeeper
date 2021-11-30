@@ -68,7 +68,7 @@ class Transforms():
 
         #Get the translation from the camera to april tag 69
         translation1 = np.array([ [1,0,0,self.x1],[0,1,0,self.y1],[0,0,1,self.z1],[0,0,0,1] ])
-        
+
         #Get the translation from the camera to april tag 420   #CODY YOULL NEED TO EDIT THIS TO THE IDEAL LOCATION FOR THE PADDLE
         translation2 = np.array([ [1,0,0,self.x2],[0,1,0,self.y2],[0,0,1,self.z2],[0,0,0,1] ])
 
@@ -113,6 +113,7 @@ class Transforms():
         # Paddle in robot frame
         Trobot_paddle = TRobot_April2@TApril2_Cam
 
+        # If ball in frame, publish coordinates
         if self.ball_flag == 1:
             self.pub.publish(ball_xyz)
 
