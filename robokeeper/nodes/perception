@@ -19,6 +19,8 @@ class GetData(object):
         rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth) # Use this for depth data
         #Setup publisher for publishing centroid coordinates and depth
         self.pub = rospy.Publisher("Xy_depth", Xy_depth, queue_size=10)
+        self.cx = 0
+        self.cy = 0
 
     def show_img(self, img):
         """ Function to display video """
@@ -47,14 +49,18 @@ class GetData(object):
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
         ball_state = 0
+        self.pass_flag = 0
         try:
+
             #Find the largest contour
             cnt = max(contours,key=cv2.contourArea)
+            
             #rospy.logerr(len(cnt))
             #Create moment of largest contour
             M = cv2.moments(cnt)
             #rospy.logerr(len(cnt))
             if len(cnt) > 20:
+                self.pass_flag = 1
                 self.ball_flag = 1
                 # ball_state = 1
                 #Find centroid of contour
@@ -65,6 +71,8 @@ class GetData(object):
             else:
                 self.ball_flag = 0
         except:
+            self.ball_flag = 0
+            self.pass_flag = 0
             pass
         # return ball_state
                 
@@ -108,6 +116,7 @@ class GetData(object):
         result = self.draw_cont(color_img)
         # if result ==1:
             #Call the function that creates x,y,z coordinates
+        
         coords = self.xyz_from_intrin(self.depth_image,self.cx,self.cy)
         #Show the color image with contours
         self.show_img(color_img)

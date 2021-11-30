@@ -101,7 +101,7 @@ class MotionControl():
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
 
         # Jonny added this, to be used for linear regression
-        self.train_num = 10
+        self.train_num = 15
         self.x_train = np.zeros(self.train_num)
         self.y_train = np.zeros(self.train_num)
         self.stop_flag = False
@@ -113,6 +113,10 @@ class MotionControl():
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = False
+         self.stop_flag = False
+         self.x_train = np.zeros(self.train_num)
+         self.y_train = np.zeros(self.train_num)
+
          return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
