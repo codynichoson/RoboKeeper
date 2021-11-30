@@ -26,6 +26,7 @@ class Transforms():
         self.ball_x = data.x
         self.ball_y = data.y
         self.ball_z = data.depth
+        self.ball_flag = data.flag
 
     def tf(self,data):
         transform = data
@@ -73,8 +74,12 @@ class Transforms():
         #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
         TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
 
-        # Ball in camera frame
-        TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
+        if self.ball_flag == 1:
+            TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
+        elif self.ball_flag == 0:
+            TCamera_Ball = np.array([ [1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1] ])
+            
+        TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
 
         # Ball in robot frame
         Trobot_ball = TRobot_April1@TApril1_Cam@TCamera_Ball
@@ -88,15 +93,8 @@ class Transforms():
         # Paddle in robot frame
         Trobot_paddle = TRobot_April2@TApril2_Cam
 
-        # Save paddle in robot frame coordinates into variable
-        paddle_xyz = coordinates()
-        paddle_xyz.x = Trobot_paddle[0][3]
-        paddle_xyz.y = -Trobot_paddle[1][3]-0.27
-        paddle_xyz.z = -Trobot_paddle[2][3]
-
-        # Publish 
-        self.pub.publish(ball_xyz)
-        self.pub_paddle.publish(paddle_xyz)
+        if self.ball_flag == 1:
+            self.pub.publish(ball_xyz)
  
 
 

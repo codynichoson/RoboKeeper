@@ -1,16 +1,33 @@
 #!/usr/bin/env python3
-""" Use the node to use moveit control the Adroit follow commend
-    Offers three Service
+""" The motion_control node publishes jointTrajectory messages to actuate the HDT Adroit 6-dof arm to mimic a goalkeeper.
+    It also actuates the arm to a specified position using moveit commander when performing the step service.
+
+    SUBSCRIBERS:
+        goalie_coord (robokeeper/GoalieCoord) - 
+
+    PUBLIHSERS:
+        move_group/display_planned_path (moveit_msgs/DisplayTrajectory)
+        pincer_joint_position_controller/command (std_msgs/Float64)
+        arm_controller/command (trajectory_msgs/JointTrajectory)
+
+    
     SERVICE:
-        reset (std_srvs/Empty) - reset to keeper Home
-        keep (std_srvs/Empty) - reset to keeper Home
+        reset (std_srvs/Empty) - resets arm position to keeper Home
         step (std_srvs/Pose) - move to a new point and add the point to
+        keep (std_srvs/Empty) - reset to keeper Home
+        start_keeping (std_srvs/Empty) - 
+        stop_keeping (std_srvs/Empty) - 
         close (std_srvs/Empty) - close the pincer
         open (std_srvs/Empty) - open the pincer
+        move_hdt (std_srvs/Empty) - 
 
+<<<<<<< HEAD
     SUBSCRIBERS:
         ball_xyz (robokeeper/coordinates) - 
         paddle_xyz (robokeeper/coordinates) -
+=======
+    
+>>>>>>> 229818073219848cfbb19c771df3301f151447dd
 """
 import sys
 import copy
@@ -18,7 +35,6 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
-import numpy as np
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
@@ -26,6 +42,7 @@ from robokeeper.msg import coordinates
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
+import numpy as np
 from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
 class MotionControl():
@@ -38,28 +55,30 @@ class MotionControl():
         self.scene = moveit_commander.PlanningSceneInterface()
         rospy.sleep(1)
         self.robot = moveit_commander.RobotCommander()
+
+        # Adding collision object to the planning scene to simulate table
         base_pose = geometry_msgs.msg.PoseStamped()
         base_pose.header.frame_id = 'base_link'
         base_pose.pose.position.x = 0
         base_pose.pose.position.y = 0
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
-        # Adding collision object to the planning scene to simulate table
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
         rospy.sleep(1)
         
+        # Initialize arm move group for moveit
         group_name = "arm"
-        # grap_group_name = "pincer"
         self.move_group_commander = moveit_commander.MoveGroupCommander(group_name)
-        # self.move_group_grap = moveit_commander.MoveGroupCommander(grap_group_name)
-        # self.move_group_grap.set_max_velocity_scaling_factor(1)
-        # self.move_group_grap.set_max_acceleration_scaling_factor(1)
         self.move_group_commander.set_max_velocity_scaling_factor(1)
         self.move_group_commander.set_max_acceleration_scaling_factor(1)
+        
+        # Initialize publishers
         self.display_trajectory_publisher =\
             rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
         self.pincer_pos_publisher = rospy.Publisher("/pincer_joint_position_controller/command", Float64,queue_size=10)
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
+        
+        # Initialize services
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -83,8 +102,14 @@ class MotionControl():
 
         self.msg_count = 0
         self.keeping = False
+<<<<<<< HEAD
         self.sub = rospy.Subscriber("/ball_xyz", coordinates, self.BallPositionInputCallback)
         self.sub_paddle = rospy.Subscriber("/paddle_xyz", coordinates, self.PaddlePositionInputCallback)
+=======
+
+        # Initialize subscriber
+        self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+>>>>>>> 229818073219848cfbb19c771df3301f151447dd
 
         # Jonny added this, to be used for linear regression
         self.train_num = 10
@@ -103,7 +128,8 @@ class MotionControl():
 
     def BallPositionInputCallback(self, msg : coordinates) -> None:
         self.msg_count +=1
-        
+        #rospy.loginfo(f"x-coord: {msg.x}, y-coord: {msg.y}")
+
         # Don't want the arm to move
         if not self.keeping or self.stop_flag:
             self.msg_count = 0
@@ -126,13 +152,13 @@ class MotionControl():
             y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
 
             # Ensure the arm doesn't move beyond the goal limits
+            rospy.loginfo(f"predicted y-coord: {y_predicted}")
             if y_predicted < -0.25:
-                rospy.logwarn('ball is too far left')
+                rospy.logwarn('ball is too far right')
                 y_predicted = -0.25
             if y_predicted > 0.25:
                 y_predicted = 0.25
-                rospy.logwarn('ball is too far right')
-            rospy.logwarn(y_predicted)
+                rospy.logwarn('ball is too far left')
 
             value = joint_lookup_table(y_predicted)
             JointTrajectoryPoint_msg = JointTrajectoryPoint()
@@ -175,12 +201,12 @@ class MotionControl():
             self.stop_flag = True # No further movement commands
 >>>>>>> c2477110f8f97a964d11fcfa699cbe30d5bb71c6
 
-        # value = joint_lookup_table(msg.y)
-        # rospy.logerr(value)
+        # value = joint_lookup_table(msg.y - 0.04)
+        # # rospy.loginfo(f"y-value: {msg.y}")
         # JointTrajectoryPoint_msg = JointTrajectoryPoint()
         # JointTrajectoryPoint_msg.positions = value
         # JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-        # JointState_msg.points =[JointTrajectoryPoint_msg] 
+        # JointState_msg.points = [JointTrajectoryPoint_msg] 
         # self.move_hdt_pub.publish(JointState_msg)
 
 

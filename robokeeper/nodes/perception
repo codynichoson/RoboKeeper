@@ -46,22 +46,27 @@ class GetData(object):
         #Draw contours based on blurred image
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
-
+        ball_state = 0
         try:
             #Find the largest contour
             cnt = max(contours,key=cv2.contourArea)
+            #rospy.logerr(len(cnt))
             #Create moment of largest contour
             M = cv2.moments(cnt)
             #rospy.logerr(len(cnt))
-            if len(cnt) > 30:
+            if len(cnt) > 20:
+                self.ball_flag = 1
+                # ball_state = 1
                 #Find centroid of contour
                 self.cx = int(M['m10']/M['m00'])
                 self.cy = int(M['m01']/M['m00'])
                 cv2.circle(img, (self.cx,self.cy), 5, (150,50,100), -1)
                 cv2.rectangle(img, (self.cx-25, self.cy-25), (self.cx+25, self.cy+25), (150,50,100), 3)
-
+            else:
+                self.ball_flag = 0
         except:
             pass
+        # return ball_state
                 
     def xyz_from_intrin(self,img,cx,cy):
         '''
@@ -77,6 +82,7 @@ class GetData(object):
         msg.x = result[0]
         msg.y = result[1]
         msg.depth = result[2]
+        msg.flag = self.ball_flag
         #Publish x, y, and depth data
         self.pub.publish(msg)
 
@@ -100,7 +106,8 @@ class GetData(object):
         color_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
         #Call the draw contour function
         result = self.draw_cont(color_img)
-        #Call the function that creates x,y,z coordinates
+        # if result ==1:
+            #Call the function that creates x,y,z coordinates
         coords = self.xyz_from_intrin(self.depth_image,self.cx,self.cy)
         #Show the color image with contours
         self.show_img(color_img)
