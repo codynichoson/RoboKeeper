@@ -228,10 +228,10 @@ class MotionControl():
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
-        if req.grep:
-            self.move_group_grap.go([0.3, 0, 0], wait=True)
+        if req.open:
+            self.pincer_pos_publisher.publish(0.8)
         else:
-            self.move_group_grap.go([0, 0, 0], wait=True)
+            self.pincer_pos_publisher.publish(0.1)
         self.move_group_grap.stop()
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
         return res

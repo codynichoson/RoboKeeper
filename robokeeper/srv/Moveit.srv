@@ -1,5 +1,5 @@
 # Start
 geometry_msgs/Pose pose
-bool grep
+bool open
 ---
 moveit_msgs/MoveItErrorCodes code
