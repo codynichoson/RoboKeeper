@@ -234,15 +234,26 @@ class MotionControl():
                 waypoints = []
                 wpose = copy.deepcopy(self.home_pose)
                 wpose.position.y = self.current_y
-                for i in range(4):
+                for i in range(1):
                     pose = copy.deepcopy(wpose)
-                    pose.position.y += (1 + i) / 4 * (req.pos - wpose.position.y)
+                    pose.position.y = req.pos * 0.82
+                    quaternion = quaternion_from_euler(1.5707, pose.position.y * 1.5, 0.5 * pose.position.y, axes='syxz')
+                    pose.orientation.x = quaternion[0]
+                    pose.orientation.y = quaternion[1]
+                    pose.orientation.z = quaternion[2]
+                    pose.orientation.w = quaternion[3]
                     waypoints.append(pose)
-                plan, fraction = self.move_group_commander.compute_cartesian_path(
-                        waypoints, 0.03, 0.0)
+                self.move_group_commander.set_pose_target(pose)
+                succ, plan, time, error_code = self.move_group_commander.plan()
+                if not succ:
+                    self.move_group_commander.clear_pose_targets()
+                    res.code = error_code
+                    return res
                 self.move_group_commander.execute(plan, wait=True)
-            res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
-            self.current_y = req.pos
+                self.move_group_commander.stop()
+                self.move_group_commander.clear_pose_targets()
+                res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+                self.current_y = req.pos
             return res
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.PLANNING_FAILED
         return res
