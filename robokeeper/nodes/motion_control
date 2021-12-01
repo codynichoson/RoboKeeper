@@ -84,7 +84,7 @@ class MotionControl():
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
-        self.home_pose.position.x = 0.25
+        self.home_pose.position.x = 0.32
         self.home_pose.position.z = -0.22
         self.home_pose.orientation.x = quaternion[0]
         self.home_pose.orientation.y = quaternion[1]
