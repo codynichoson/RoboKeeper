@@ -58,7 +58,9 @@ class MotionControl():
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
-        self.score = 0
+        self.ball_in_net = False
+        self.goals = 0
+        self.saves = 0
         rospy.sleep(1)
         
         # Initialize arm move group for moveit
@@ -209,13 +211,21 @@ class MotionControl():
         JointTrajectoryPoint_msg.positions = value
         JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
         JointState_msg.points = [JointTrajectoryPoint_msg] 
+
+        self.previous_ball_in_net = self.ball_in_net
+
         if msg.x>-1:
             self.move_hdt_pub.publish(JointState_msg)
+            self.ball_in_net = False
+        elif msg.x < -1 and msg.y > -0.25 and msg.y < 0.25:
+            self.ball_in_net = True
+            if self.ball_in_net == True and self.previous_ball_in_net == False:
+                self.goals += 1
 
-        elif msg.x < -1:
-            if msg.y > -0.25 and msg.y < 0.25:
-                self.score += 1
-                rospy.logerr(self.score)
+        rospy.loginfo(f"Ball in Net?: {self.ball_in_net}")
+        rospy.loginfo(f"Goals: {self.goals}")
+    
+
         self.pre_y.pop(0)
         self.pre_y.append(msg.y)
 
