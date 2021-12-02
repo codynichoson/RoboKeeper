@@ -58,6 +58,7 @@ class MotionControl():
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
+
         rospy.sleep(1)
         
         # Initialize arm move group for moveit
@@ -73,6 +74,7 @@ class MotionControl():
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
         
         # Initialize services
+        self.paddle_srv = rospy.Service("grab_paddle",Empty, self.PaddleCallback)
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -84,7 +86,7 @@ class MotionControl():
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
-        self.home_pose.position.x = 0.25
+        self.home_pose.position.x = 0.32
         self.home_pose.position.z = -0.22
         self.home_pose.orientation.x = quaternion[0]
         self.home_pose.orientation.y = quaternion[1]
@@ -101,11 +103,34 @@ class MotionControl():
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
 
         # Jonny added this, to be used for linear regression
-        self.train_num = 10
+        self.train_num = 15
         self.x_train = np.zeros(self.train_num)
         self.y_train = np.zeros(self.train_num)
         self.stop_flag = False
         self.train_count = 0  # Temporarily using this instead of self.msg_count
+
+        self.pre_y = [0, 0, 0, 0]
+
+    def PaddleCallback(self, req: EmptyRequest) -> EmptyResponse:
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        paddle_pose = Pose()
+        paddle_pose.position.x = 0
+        paddle_pose.position.y = 0.25
+        paddle_pose.position.z = -0.22
+        paddle_pose.orientation.x = quaternion[0]
+        paddle_pose.orientation.y = quaternion[1]
+        paddle_pose.orientation.z = quaternion[2]
+        paddle_pose.orientation.w = quaternion[3]
+
+
+        self.move_group_commander.set_pose_target(paddle_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        self.now_keep = True
+        return EmptyResponse()
+
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
@@ -113,6 +138,10 @@ class MotionControl():
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = False
+         self.stop_flag = False
+         self.x_train = np.zeros(self.train_num)
+         self.y_train = np.zeros(self.train_num)
+
          return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
@@ -128,43 +157,46 @@ class MotionControl():
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
         # Implementing trajectory prediction
-        if self.msg_count <= self.train_num:
-            rospy.logwarn('TRAIN')
-            self.x_train[self.msg_count-1] = msg.x
-            self.y_train[self.msg_count-1] = msg.y
+        # if self.msg_count <= self.train_num:
+        #     rospy.logwarn('TRAIN')
+        #     self.x_train[self.msg_count-1] = msg.x
+        #     self.y_train[self.msg_count-1] = msg.y
 
-        if self.msg_count == self.train_num:  # Once you have sufficient training data
-            rospy.logwarn('MOVE!!')
-            rospy.logwarn(self.x_train)
-            rospy.logwarn(self.y_train)
-            x_goal = -1.07
-            y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
+        # if self.msg_count == self.train_num:  # Once you have sufficient training data
+        #     rospy.logwarn('MOVE!!')
+        #     rospy.logwarn(self.x_train)
+        #     rospy.logwarn(self.y_train)
+        #     x_goal = -1.07
+        #     y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
 
-            # Ensure the arm doesn't move beyond the goal limits
-            rospy.loginfo(f"predicted y-coord: {y_predicted}")
-            if y_predicted < -0.25:
-                rospy.logwarn('ball is too far right')
-                y_predicted = -0.25
-            if y_predicted > 0.25:
-                y_predicted = 0.25
-                rospy.logwarn('ball is too far left')
+        #     # Ensure the arm doesn't move beyond the goal limits
+        #     rospy.loginfo(f"predicted y-coord: {y_predicted}")
+        #     if y_predicted < -0.25:
+        #         rospy.logwarn('ball is too far right')
+        #         y_predicted = -0.25
+        #     if y_predicted > 0.25:
+        #         y_predicted = 0.25
+        #         rospy.logwarn('ball is too far left')
 
-            value = joint_lookup_table(y_predicted)
-            JointTrajectoryPoint_msg = JointTrajectoryPoint()
-            JointTrajectoryPoint_msg.positions = value
-            JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-            JointState_msg.points = [JointTrajectoryPoint_msg] 
-            self.move_hdt_pub.publish(JointState_msg)
+        #     value = joint_lookup_table(y_predicted)
+        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        #     JointTrajectoryPoint_msg.positions = value
+        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
+        #     JointState_msg.points = [JointTrajectoryPoint_msg] 
+        #     self.move_hdt_pub.publish(JointState_msg)
 
-            self.stop_flag = True # No further movement commands
-
-        # value = joint_lookup_table(msg.y - 0.04)
-        # # rospy.loginfo(f"y-value: {msg.y}")
-        # JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        # JointTrajectoryPoint_msg.positions = value
-        # JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-        # JointState_msg.points = [JointTrajectoryPoint_msg] 
-        # self.move_hdt_pub.publish(JointState_msg)
+        #     self.stop_flag = True # No further movement commands
+        rospy.logerr(msg.y)
+        value = joint_lookup_table(msg.y + (msg.y-self.pre_y[0]) * 3)
+        rospy.logerr(value)
+        # rospy.loginfo(f"y-value: {msg.y}")
+        JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        JointTrajectoryPoint_msg.positions = value
+        JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
+        JointState_msg.points = [JointTrajectoryPoint_msg] 
+        self.move_hdt_pub.publish(JointState_msg)
+        self.pre_y.pop(0)
+        self.pre_y.append(msg.y)
 
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
@@ -185,10 +217,10 @@ class MotionControl():
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
-        if req.grep:
-            self.move_group_grap.go([0.3, 0, 0], wait=True)
+        if req.open:
+            self.pincer_pos_publisher.publish(0.8)
         else:
-            self.move_group_grap.go([0, 0, 0], wait=True)
+            self.pincer_pos_publisher.publish(0.1)
         self.move_group_grap.stop()
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
         return res
@@ -225,15 +257,26 @@ class MotionControl():
                 waypoints = []
                 wpose = copy.deepcopy(self.home_pose)
                 wpose.position.y = self.current_y
-                for i in range(4):
+                for i in range(1):
                     pose = copy.deepcopy(wpose)
-                    pose.position.y += (1 + i) / 4 * (req.pos - wpose.position.y)
+                    pose.position.y = req.pos * 0.82
+                    quaternion = quaternion_from_euler(1.5707, pose.position.y * 1.5, 0.5 * pose.position.y, axes='syxz')
+                    pose.orientation.x = quaternion[0]
+                    pose.orientation.y = quaternion[1]
+                    pose.orientation.z = quaternion[2]
+                    pose.orientation.w = quaternion[3]
                     waypoints.append(pose)
-                plan, fraction = self.move_group_commander.compute_cartesian_path(
-                        waypoints, 0.03, 0.0)
+                self.move_group_commander.set_pose_target(pose)
+                succ, plan, time, error_code = self.move_group_commander.plan()
+                if not succ:
+                    self.move_group_commander.clear_pose_targets()
+                    res.code = error_code
+                    return res
                 self.move_group_commander.execute(plan, wait=True)
-            res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
-            self.current_y = req.pos
+                self.move_group_commander.stop()
+                self.move_group_commander.clear_pose_targets()
+                res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
+                self.current_y = req.pos
             return res
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.PLANNING_FAILED
         return res
