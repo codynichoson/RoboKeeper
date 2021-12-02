@@ -164,7 +164,7 @@ class MotionControl():
 
         #     self.stop_flag = True # No further movement commands
         rospy.logerr(msg.y)
-        value = joint_lookup_table(msg.y + (msg.y-self.pre_y[0]) * 4)
+        value = joint_lookup_table(msg.y + (msg.y-self.pre_y[0]) * 3)
         rospy.logerr(value)
         # rospy.loginfo(f"y-value: {msg.y}")
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
