@@ -74,7 +74,8 @@ class MotionControl():
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
         
         # Initialize services
-        self.paddle_srv = rospy.Service("grab_paddle",Empty, self.PaddleCallback)
+        self.paddle_srv_above = rospy.Service("above_paddle",Empty, self.PaddleAboveCallback)
+        self.paddle_srv_retrieve = rospy.Service("retrieve_paddle",Empty, self.PaddleRetrieveCallback)
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -82,7 +83,6 @@ class MotionControl():
         self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StopingCallback)
         self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
-        self.Move_hdt_srv = rospy.Service("Move_hdt", Empty, self.Move_hdt)### Marco added this
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
@@ -111,24 +111,71 @@ class MotionControl():
 
         self.pre_y = [0, 0, 0, 0]
 
-    def PaddleCallback(self, req: EmptyRequest) -> EmptyResponse:
-        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+    def PaddleAboveCallback(self, req: EmptyRequest) -> EmptyResponse:
+        # vertical_movement = [0,-0.1,0]
+        # for i in vertical_movement:
+        
+        quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.25
-        paddle_pose.position.z = -0.22
+        paddle_pose.position.y = 0.39
+        paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
         paddle_pose.orientation.w = quaternion[3]
-
-
         self.move_group_commander.set_pose_target(paddle_pose)
         succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
-        self.now_keep = True
+        self.pincer_pos_publisher.publish(0.8)
+        return EmptyResponse()
+
+    def PaddleRetrieveCallback(self, req: EmptyRequest) -> EmptyResponse:
+        # vertical_movement = [0,-0.1,0]
+        # for i in vertical_movement:
+        quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
+        paddle_pose = Pose()
+        paddle_pose.position.x = 0
+        paddle_pose.position.y = 0.39
+        paddle_pose.position.z = -0.25
+        paddle_pose.orientation.x = quaternion[0]
+        paddle_pose.orientation.y = quaternion[1]
+        paddle_pose.orientation.z = quaternion[2]
+        paddle_pose.orientation.w = quaternion[3]
+        self.move_group_commander.set_pose_target(paddle_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        rospy.sleep(3)
+        self.pincer_pos_publisher.publish(0.1)
+        rospy.sleep(1)
+        quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
+        paddle_pose = Pose()
+        paddle_pose.position.x = 0
+        paddle_pose.position.y = 0.39
+        paddle_pose.position.z = 0
+        paddle_pose.orientation.x = quaternion[0]
+        paddle_pose.orientation.y = quaternion[1]
+        paddle_pose.orientation.z = quaternion[2]
+        paddle_pose.orientation.w = quaternion[3]
+        self.move_group_commander.set_pose_target(paddle_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        rospy.sleep(1)
         return EmptyResponse()
 
 
@@ -156,40 +203,8 @@ class MotionControl():
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
-        # Implementing trajectory prediction
-        # if self.msg_count <= self.train_num:
-        #     rospy.logwarn('TRAIN')
-        #     self.x_train[self.msg_count-1] = msg.x
-        #     self.y_train[self.msg_count-1] = msg.y
-
-        # if self.msg_count == self.train_num:  # Once you have sufficient training data
-        #     rospy.logwarn('MOVE!!')
-        #     rospy.logwarn(self.x_train)
-        #     rospy.logwarn(self.y_train)
-        #     x_goal = -1.07
-        #     y_predicted = traj_linear_reg(self.x_train, self.y_train, x_goal)
-
-        #     # Ensure the arm doesn't move beyond the goal limits
-        #     rospy.loginfo(f"predicted y-coord: {y_predicted}")
-        #     if y_predicted < -0.25:
-        #         rospy.logwarn('ball is too far right')
-        #         y_predicted = -0.25
-        #     if y_predicted > 0.25:
-        #         y_predicted = 0.25
-        #         rospy.logwarn('ball is too far left')
-
-        #     value = joint_lookup_table(y_predicted)
-        #     JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        #     JointTrajectoryPoint_msg.positions = value
-        #     JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
-        #     JointState_msg.points = [JointTrajectoryPoint_msg] 
-        #     self.move_hdt_pub.publish(JointState_msg)
-
-        #     self.stop_flag = True # No further movement commands
-        # rospy.logerr(msg.y)
         value = joint_lookup_table(msg.y + (msg.y-self.pre_y[0]) * 3)
-        # rospy.logerr(value)
-        # rospy.loginfo(f"y-value: {msg.y}")
+
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
         JointTrajectoryPoint_msg.positions = value
         JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
@@ -299,35 +314,6 @@ class MotionControl():
         self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
     
-    def Move_hdt(self,req:EmptyRequest) -> EmptyResponse:  ### Marco added this
-        JointState_msg = JointTrajectory()
-        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
-
-        
-        JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        JointTrajectoryPoint_msg.positions = [-1, -1.1167720947603965, -0.5238704263196091, 0.3766037764610953, 0.02224340023904636, -2.3946170878035424]
-        JointTrajectoryPoint_msg.time_from_start.nsecs = 500000000
-
-        JointState_msg.points =[JointTrajectoryPoint_msg] 
-        self.move_hdt_pub.publish(JointState_msg)
-        rospy.sleep(1)
-        JointState_msg = JointTrajectory()
-        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
-
-        
-        JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        JointTrajectoryPoint_msg.positions = [1, -1.1167720947603965, -0.5238704263196091, 0.3766037764610953, 0.02224340023904636, -2.3946170878035424]
-        # JointTrajectoryPoint_msg.velocities = [0.0, 0.0012207403790398877, 0.0, 0.0, 0.0, 0.0, 0.0004882961516159551]
-        # JointTrajectoryPoint_msg.accelerations = []
-        # JointTrajectoryPoint_msg.accelerations = [0,0,0,0,0,0,0]
-        # JointTrajectoryPoint_msg.effort = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 16.203619495223855]
-        JointTrajectoryPoint_msg.time_from_start.nsecs = 500000000
-
-        JointState_msg.points =[JointTrajectoryPoint_msg] 
-        self.move_hdt_pub.publish(JointState_msg)
-        rospy.logerr('erOR')
-
-        return EmptyResponse()
 
 
 def main():
