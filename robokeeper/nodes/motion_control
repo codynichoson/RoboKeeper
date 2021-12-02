@@ -58,6 +58,7 @@ class MotionControl():
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
         self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
+
         rospy.sleep(1)
         
         # Initialize arm move group for moveit
@@ -73,6 +74,7 @@ class MotionControl():
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
         
         # Initialize services
+        self.paddle_srv = rospy.Service("grab_paddle",Empty, self.PaddleCallback)
         self.reset_srv = rospy.Service("reset", Empty, self.ResetCallback)
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
@@ -108,6 +110,27 @@ class MotionControl():
         self.train_count = 0  # Temporarily using this instead of self.msg_count
 
         self.pre_y = [0, 0, 0, 0]
+
+    def PaddleCallback(self, req: EmptyRequest) -> EmptyResponse:
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        paddle_pose = Pose()
+        paddle_pose.position.x = 0
+        paddle_pose.position.y = 0.25
+        paddle_pose.position.z = -0.22
+        paddle_pose.orientation.x = quaternion[0]
+        paddle_pose.orientation.y = quaternion[1]
+        paddle_pose.orientation.z = quaternion[2]
+        paddle_pose.orientation.w = quaternion[3]
+
+
+        self.move_group_commander.set_pose_target(paddle_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        self.now_keep = True
+        return EmptyResponse()
+
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = True
