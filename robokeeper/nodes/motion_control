@@ -227,12 +227,26 @@ class MotionControl():
 
 
     def ResetCallback(self, req: EmptyRequest) -> EmptyResponse:
-        self.move_group_commander.set_pose_target(self.home_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        self.now_keep = True
+        # Reset using Moveit
+        # self.move_group_commander.set_pose_target(self.home_pose)
+        # succ, plan, time, error_code = self.move_group_commander.plan()
+        # self.move_group_commander.execute(plan, wait=True)
+        # self.move_group_commander.stop()
+        # self.move_group_commander.clear_pose_targets()
+        # self.now_keep = True
+
+        JointState_msg = JointTrajectory()
+        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        value = joint_lookup_table(0.0) # move the arm to center position
+        JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        JointTrajectoryPoint_msg.positions = value
+        JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
+        JointState_msg.points = [JointTrajectoryPoint_msg] 
+        self.move_hdt_pub.publish(JointState_msg)
+
+
+
         return EmptyResponse()
 
 
