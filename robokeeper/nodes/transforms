@@ -73,7 +73,7 @@ class Transforms():
         #For the first april tag, get the translation from the base of the robot to april tag 69
         TRobot_April1 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
         #For the second april tag, get the transform from the base of the robot to april tag 420, CODY YOULL NEED TO CHANGE THIS
-        TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
+        # TRobot_April2 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
         
         # if self.ball_flag == 1:
         TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
@@ -81,8 +81,10 @@ class Transforms():
         # TCamera_Ball = np.array([ [1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1] ])
             
         TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
+        
+        TR_PADDLE = TRobot_April1@TApril_Cam1@TCam_April2
+        # TR_PADDLE = TRobot_April2@TApril_Cam2
 
-        TR_PADDLE = TRobot_April2@TApril_Cam2
         paddle_xyz = Goalie_coord()
         paddle_xyz.x = TR_PADDLE[0][3]+.15
         paddle_xyz.y = TR_PADDLE[1][3]
