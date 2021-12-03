@@ -53,6 +53,7 @@ add_message_files(
   FILES
   Xy_depth.msg
   Goalie_coord.msg
+  Scores.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -168,6 +169,7 @@ catkin_install_python(PROGRAMS
   nodes/perception
   nodes/transforms
   nodes/motion_control
+  nodes/scorekeeper
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
