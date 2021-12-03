@@ -25,6 +25,8 @@ class Scoreboard:
         # Input from user in form of clicks and keyboard
         # self.play_again()
         self.begin = False
+        self.robot_score = 0
+        self.human_score = 0
 
     def initialize_board(self):
         self.board = []
@@ -32,13 +34,13 @@ class Scoreboard:
             for j in range(cols):
                 self.board.append((i, j))
 
-    def mainloop(self):
+    def mainloop(self, human, robot):
         while True:
             self.window.update()
-            self.display_scores()
+            self.display_scores(human, robot)
                 
 
-    def display_scores(self):
+    def display_scores(self, human, robot):
         score = 5
         robot_text = "ROBOT \n"
         human_text = "HUMAN \n"
@@ -68,7 +70,7 @@ class Scoreboard:
             size_of_board*0.65,
             font=("Helvetica 300"),
             fill=PURPLE_COLOR,
-            text="99",
+            text=str(human),
         )
 
         self.canvas.create_text(
@@ -76,8 +78,8 @@ class Scoreboard:
             size_of_board*0.65,
             font=("Helvetica 300"),
             fill=PURPLE_COLOR,
-            text="0",
+            text=str(robot),
         )
 
 game_instance = Scoreboard()
-game_instance.mainloop()
+game_instance.mainloop(game_instance.human_score, game_instance.robot_score)
