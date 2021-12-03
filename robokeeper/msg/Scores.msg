@@ -1,0 +1,2 @@
+int human_score
+int robot_score
