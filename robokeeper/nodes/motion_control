@@ -101,6 +101,7 @@ class MotionControl():
 
         # Initialize subscriber
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+        self.sub = rospy.Subscriber("/Paddle_coord", Goalie_coord, self.PaddleInputCallback)
 
         # Jonny added this, to be used for linear regression
         self.train_num = 15
@@ -110,15 +111,27 @@ class MotionControl():
         self.train_count = 0  # Temporarily using this instead of self.msg_count
 
         self.pre_y = [0, 0, 0, 0]
+        self.paddle_x_coord = 0
+        self.paddle_y_coord = 0
+        self.paddle_z_coord = 0
+
+
+    def PaddleInputCallback(self, msg : Goalie_coord) -> None:
+        self.paddle_x_coord = msg.x
+        self.paddle_y_coord = msg.y
+        self.paddle_z_coord = msg.z
 
     def PaddleAboveCallback(self, req: EmptyRequest) -> EmptyResponse:
         # vertical_movement = [0,-0.1,0]
         # for i in vertical_movement:
-        
+        self.final_paddle_x = self.paddle_x_coord
+        self.final_paddle_y = self.paddle_y_coord
+        self.final_paddle_z = self.paddle_z_coord
+
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.39
+        paddle_pose.position.y = -self.final_paddle_y
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
@@ -315,7 +328,7 @@ class MotionControl():
         return EmptyResponse()
     
 
-
+    
 def main():
     motion_control = MotionControl()
     rospy.spin()
