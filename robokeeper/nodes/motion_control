@@ -20,7 +20,6 @@
         close (std_srvs/Empty) - close the pincer
         open (std_srvs/Empty) - open the pincer
         move_hdt (std_srvs/Empty) - 
-
     
 """
 import sys
@@ -35,7 +34,7 @@ from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, Keeper
 from robokeeper.msg import Goalie_coord, Scores
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Pose
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import numpy as np
 from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
@@ -106,13 +105,6 @@ class MotionControl():
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
         self.sub = rospy.Subscriber("/Paddle_coord", Goalie_coord, self.PaddleInputCallback)
 
-        # Jonny added this, to be used for linear regression
-        self.train_num = 15
-        self.x_train = np.zeros(self.train_num)
-        self.y_train = np.zeros(self.train_num)
-        self.stop_flag = False
-        self.train_count = 0  # Temporarily using this instead of self.msg_count
-
         self.pre_y = [0, 0, 0, 0]
         self.paddle_x_coord = 0
         self.paddle_y_coord = 0
@@ -134,7 +126,7 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = -self.final_paddle_y
+        paddle_pose.position.y = self.final_paddle_y
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
@@ -201,9 +193,6 @@ class MotionControl():
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = False
-         self.stop_flag = False
-         self.x_train = np.zeros(self.train_num)
-         self.y_train = np.zeros(self.train_num)
 
          return EmptyResponse()
 
@@ -211,18 +200,17 @@ class MotionControl():
         self.msg_count +=1
         #rospy.loginfo(f"x-coord: {msg.x}, y-coord: {msg.y}")
 
-        # Don't want the arm to move
-        if not self.keeping or self.stop_flag:
+        if not self.keeping:
             self.msg_count = 0
             return
 
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
 
-        value = joint_lookup_table(msg.y + (msg.y-self.pre_y[0]) * 3)
+        joint_angles = joint_lookup_table(msg.y + 3*(msg.y - self.pre_y[0]))
 
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
-        JointTrajectoryPoint_msg.positions = value
+        JointTrajectoryPoint_msg.positions = joint_angles
         JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
         JointState_msg.points = [JointTrajectoryPoint_msg] 
 
@@ -277,12 +265,17 @@ class MotionControl():
 
 
     def ResetCallback(self, req: EmptyRequest) -> EmptyResponse:
-        self.move_group_commander.set_pose_target(self.home_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        self.now_keep = True
+
+        JointState_msg = JointTrajectory()
+        JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        value = joint_lookup_table(0.0) # move the arm to center position
+        JointTrajectoryPoint_msg = JointTrajectoryPoint()
+        JointTrajectoryPoint_msg.positions = value
+        JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
+        JointState_msg.points = [JointTrajectoryPoint_msg] 
+        self.move_hdt_pub.publish(JointState_msg)
+
         return EmptyResponse()
 
 
@@ -342,7 +335,6 @@ class MotionControl():
         # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
-    
 
     
 def main():
