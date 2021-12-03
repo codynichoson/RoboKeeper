@@ -1,2 +1,2 @@
-int human_score
-int robot_score
+int32 human
+int32 robot
