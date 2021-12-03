@@ -116,6 +116,9 @@ class MotionControl():
         self.paddle_x_coord = 0
         self.paddle_y_coord = 0
         self.paddle_z_coord = 0
+        
+        # Reseting robot position
+        self.ResetCallback(EmptyRequest)
 
 
     def PaddleInputCallback(self, msg : Goalie_coord) -> None:
@@ -133,7 +136,7 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = -self.final_paddle_y
+        paddle_pose.position.y = 0.43
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
@@ -156,7 +159,7 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.39
+        paddle_pose.position.y = 0.43
         paddle_pose.position.z = -0.25
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
@@ -176,7 +179,7 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.39
+        paddle_pose.position.y = 0.43
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
