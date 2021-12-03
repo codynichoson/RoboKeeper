@@ -32,7 +32,7 @@ import geometry_msgs.msg
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from robokeeper.srv import Moveit, MoveitRequest, MoveitResponse, Keeper, KeeperRequest, KeeperResponse
-from robokeeper.msg import Goalie_coord
+from robokeeper.msg import Goalie_coord, Scores
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Pose
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint  ### Marco added this
@@ -74,6 +74,7 @@ class MotionControl():
             rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
         self.pincer_pos_publisher = rospy.Publisher("/pincer_joint_position_controller/command", Float64,queue_size=10)
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
+        self.score_pub = rospy.Publisher("/scores", Scores, queue_size = 10) # Publish scores
         
         # Initialize services
         self.paddle_srv_above = rospy.Service("above_paddle",Empty, self.PaddleAboveCallback)
@@ -214,6 +215,8 @@ class MotionControl():
 
         self.previous_ball_in_net = self.ball_in_net
 
+        scores = Scores()
+
         if msg.x>-1:
             self.move_hdt_pub.publish(JointState_msg)
             self.ball_in_net = False
@@ -224,7 +227,10 @@ class MotionControl():
 
         rospy.loginfo(f"Ball in Net?: {self.ball_in_net}")
         rospy.loginfo(f"Goals: {self.goals}")
-    
+
+        scores.human = self.goals
+        scores.robot = 0
+        self.score_pub.publish(scores)
 
         self.pre_y.pop(0)
         self.pre_y.append(msg.y)
