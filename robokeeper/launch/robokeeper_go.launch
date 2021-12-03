@@ -13,6 +13,9 @@
   <!-- start transforms node -->
   <node name="transforms" pkg="robokeeper" type="transforms"/>
 
+  <node name="scorekeeper" pkg="robokeeper" type="scorekeeper"/>
+
+
   <node name="mover" pkg="robokeeper" type="motion_control" output="screen">
     <remap from="/pincer_joint_position_controller/command" to="hdt_arm/pincer_joint_position_controller/command" />
     <remap from="/arm_controller/command" to="hdt_arm/arm_controller/command" />
