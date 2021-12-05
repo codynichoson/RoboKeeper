@@ -1,0 +1,10 @@
+paddle_x: 0.40
+paddle_y: 0
+paddle_z_above: 0
+paddle_z_align: -0.23
+ground_l: 5
+ground_w: 5
+ground_h: 1
+goal_l: 0.18
+goal_w: 0.6
+goal_h: 0.4
