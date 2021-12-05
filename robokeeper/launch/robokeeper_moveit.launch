@@ -66,10 +66,10 @@
   </include>
 
   <!-- start rviz -->
-  <!-- <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
 	args="-d $(find robokeeper)/rviz/moveit.rviz" output="screen">
     <rosparam command="load" file="$(find hdt_6dof_a24_pincer_moveit)/config/kinematics.yaml"/>
-  </node> -->
+  </node>
   
   
 

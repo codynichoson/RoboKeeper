@@ -21,7 +21,6 @@
         open (std_srvs/Empty) - open the pincer
         above_paddle (std_srvs/Empty) - move robot end effector above the fixed paddle holster and open the gripper
         retrieve_paddle (std_srvs/Empty) - move robot end effector to grab paddle from the fixed paddle holster 
-        rage_mode (std_srvs/Empty) - go rage mode
 """
 import sys
 import copy
@@ -96,10 +95,9 @@ class MotionControl():
         self.step_srv = rospy.Service("step", Moveit, self.StepCallback)
         self.keeper_srv = rospy.Service("keep", Keeper, self.KeeperCallback)
         self.keeping_srv = rospy.Service("start_keeping", Empty, self.KeepingCallback)
-        self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StopingCallback)
+        self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StoppingCallback)
         self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
-        self.rage_mode_srv = rospy.Service("rage_mode", Empty, self.RageCallback)
 
         # Initialize subscriber
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
@@ -130,77 +128,6 @@ class MotionControl():
         # Reseting robot to home position
         start = self.ResetCallback(EmptyRequest)
 
-    def RageCallback(self, req: EmptyRequest) -> EmptyResponse:
-        """ Callback function for the rage_mode service
-        Puts the robot into rage mode. Sends moveit commands to move robot end effector to the -x position,
-        then releases the paddle. 
-
-         Args:
-          req (std_msgs/Empty)
-        Returns:
-           EmptyResponse
-        """
-
-        # waypoint 1
-        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
-        rage_pose = Pose()
-        rage_pose.position.x = 0.4
-        rage_pose.position.y = 0
-        rage_pose.position.z = 0
-        rage_pose.orientation.x = quaternion[0]
-        rage_pose.orientation.y = quaternion[1]
-        rage_pose.orientation.z = quaternion[2]
-        rage_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(rage_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        rospy.sleep(1)
-        
-        # waypoint 2
-        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
-        rage_pose = Pose()
-        rage_pose.position.x = 0
-        rage_pose.position.y = 0.4
-        rage_pose.position.z = 0
-        rage_pose.orientation.x = quaternion[0]
-        rage_pose.orientation.y = quaternion[1]
-        rage_pose.orientation.z = quaternion[2]
-        rage_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(rage_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        rospy.sleep(1)
-
-        #waypoint 3
-        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
-        rage_pose = Pose()
-        rage_pose.position.x = -0.4
-        rage_pose.position.y = 0
-        rage_pose.position.z = 0
-        rage_pose.orientation.x = quaternion[0]
-        rage_pose.orientation.y = quaternion[1]
-        rage_pose.orientation.z = quaternion[2]
-        rage_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(rage_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        rospy.sleep(3)
-        self.pincer_pos_publisher.publish(0.8)
 
     def PaddleAboveCallback(self, req: EmptyRequest) -> EmptyResponse:
         """ Callback function for the above_paddle service
@@ -347,13 +274,15 @@ class MotionControl():
         Set keeping to True
          Args:
             req (std_msgs/Empty)
-        Returns:
+        Returns:ERROR: The following tests failed to run:
+ * testrobokeeper_test
+
             EmptyResponse
         """
         self.keeping = True
         return EmptyResponse()
 
-    def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
+    def StoppingCallback(self, req: EmptyRequest) -> EmptyResponse:
         """ Callback function for the stop_keeping service
         Set keeping to False
          Args:
