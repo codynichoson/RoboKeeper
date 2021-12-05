@@ -67,12 +67,37 @@ class MotionControl():
         base_pose.pose.orientation.w = 1.0
         self.scene.attach_box('base_link','goal', pose=base_pose, size=(.18, .6, .4))
        
+        # base_pose = geometry_msgs.msg.PoseStamped()
+        # base_pose.header.frame_id = 'base_link'
+        # base_pose.pose.position.x = 0
+        # base_pose.pose.position.y = 0.3
+        # base_pose.pose.position.z = -0.3
+        # base_pose.pose.orientation.w = 1.0
+        # self.scene.attach_box('base_link','left_link', pose=base_pose, size=(.1, .28, .06))
+
+        # base_pose = geometry_msgs.msg.PoseStamped()
+        # base_pose.header.frame_id = 'base_link'
+        # base_pose.pose.position.x = 0
+        # base_pose.pose.position.y = -0.3
+        # base_pose.pose.position.z = -0.3
+        # base_pose.pose.orientation.w = 1.0
+        # self.scene.attach_box('base_link','right_link', pose=base_pose, size=(.1, .28, .06))
+
+        # base_pose = geometry_msgs.msg.PoseStamped()
+        # base_pose.header.frame_id = 'base_link'
+        # base_pose.pose.position.x = -0.3
+        # base_pose.pose.position.y = 0
+        # base_pose.pose.position.z = -0.1
+        # base_pose.pose.orientation.w = 1.0
+        # self.scene.attach_box('base_link','empty_box', pose=base_pose, size=(.25, .25, .18))
+
         self.ball_in_net = False
         self.goals = 0
         self.saves = 0
         
         
-        rospy.sleep(1)
+        rospy.sleep(2)
+
         
         # Initialize arm move group for moveit
         group_name = "arm"
@@ -98,6 +123,7 @@ class MotionControl():
         self.stoping_srv = rospy.Service("stop_keeping", Empty, self.StopingCallback)
         self.close_srv = rospy.Service("close", Empty, self.CloseCallback)
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
+        self.rage_mode_srv = rospy.Service("rage_mode", Empty, self.RageCallback)
 
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
@@ -122,10 +148,69 @@ class MotionControl():
         self.paddle_x_coord = 0
         self.paddle_y_coord = 0
         self.paddle_z_coord = 0
-        
+        rospy.sleep(5)
         # Reseting robot position
-        self.ResetCallback(EmptyRequest)
+        start = self.ResetCallback(EmptyRequest)
 
+    def RageCallback(self, req: EmptyRequest) -> EmptyResponse:
+
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        rage_pose = Pose()
+        rage_pose.position.x = 0.4
+        rage_pose.position.y = 0
+        rage_pose.position.z = 0
+        rage_pose.orientation.x = quaternion[0]
+        rage_pose.orientation.y = quaternion[1]
+        rage_pose.orientation.z = quaternion[2]
+        rage_pose.orientation.w = quaternion[3]
+        self.move_group_commander.set_pose_target(rage_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        rospy.sleep(1)
+
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        rage_pose = Pose()
+        rage_pose.position.x = 0
+        rage_pose.position.y = 0.4
+        rage_pose.position.z = 0
+        rage_pose.orientation.x = quaternion[0]
+        rage_pose.orientation.y = quaternion[1]
+        rage_pose.orientation.z = quaternion[2]
+        rage_pose.orientation.w = quaternion[3]
+        self.move_group_commander.set_pose_target(rage_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        rospy.sleep(1)
+
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        rage_pose = Pose()
+        rage_pose.position.x = -0.4
+        rage_pose.position.y = 0
+        rage_pose.position.z = 0
+        rage_pose.orientation.x = quaternion[0]
+        rage_pose.orientation.y = quaternion[1]
+        rage_pose.orientation.z = quaternion[2]
+        rage_pose.orientation.w = quaternion[3]
+        self.move_group_commander.set_pose_target(rage_pose)
+        succ, plan, time, error_code = self.move_group_commander.plan()
+        if not succ:
+            self.move_group_commander.clear_pose_targets()
+            return  None
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+        rospy.sleep(3)
+        self.pincer_pos_publisher.publish(0.8)
 
     def PaddleInputCallback(self, msg : Goalie_coord) -> None:
         self.paddle_x_coord = msg.x
@@ -139,23 +224,68 @@ class MotionControl():
         self.final_paddle_y = self.paddle_y_coord
         self.final_paddle_z = self.paddle_z_coord
 
-        quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
+        quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        paddle_pose = Pose()
+        paddle_pose.position.x = 0.4
+        paddle_pose.position.y = 0
+        paddle_pose.position.z = -0.23
+        paddle_pose.orientation.x = quaternion[0]
+        paddle_pose.orientation.y = quaternion[1]
+        paddle_pose.orientation.z = quaternion[2]
+        paddle_pose.orientation.w = quaternion[3]
+        waypoints = []
+        wpose = copy.deepcopy(paddle_pose)
+        for i in range(24):
+            pose = copy.deepcopy(wpose)
+            pose.position.z = -0.23 + 0.005 * i
+            pose.position.y = 0.01 * i
+            pose.position.x = 0.4 - 0.01 * i
+            waypoints.append(pose)
+        plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+
+        quaternion = quaternion_from_euler(0, 1.5707, 1.57, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
+        paddle_pose.position.y = 0.38
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
         paddle_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(paddle_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
+        waypoints = []
+        wpose = copy.deepcopy(paddle_pose)
+        for i in range(15):
+            pose = copy.deepcopy(wpose)
+            pose.position.z = -0.1 + 0.01 * i
+            pose.position.y = 0.24 + 0.01 * i
+            pose.position.x = 0.14 - 0.01 * i
+            waypoints.append(pose)
+        plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
+
+        # quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
+        # paddle_pose = Pose()
+        # paddle_pose.position.x = 0
+        # paddle_pose.position.y = 0.38
+        # paddle_pose.position.z = 0
+        # paddle_pose.orientation.x = quaternion[0]
+        # paddle_pose.orientation.y = quaternion[1]
+        # paddle_pose.orientation.z = quaternion[2]
+        # paddle_pose.orientation.w = quaternion[3]
+        # self.move_group_commander.set_pose_target(paddle_pose)
+        # succ, plan, time, error_code = self.move_group_commander.plan()
+        # if not succ:
+        #     self.move_group_commander.clear_pose_targets()
+        #     return  None
+        # self.move_group_commander.execute(plan, wait=True)
+        # self.move_group_commander.stop()
+        # self.move_group_commander.clear_pose_targets()
+
         self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
 
@@ -165,40 +295,36 @@ class MotionControl():
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
-        paddle_pose.position.z = -0.23
-        paddle_pose.orientation.x = quaternion[0]
-        paddle_pose.orientation.y = quaternion[1]
-        paddle_pose.orientation.z = quaternion[2]
-        paddle_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(paddle_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
-        self.move_group_commander.execute(plan, wait=True)
-        self.move_group_commander.stop()
-        self.move_group_commander.clear_pose_targets()
-        rospy.sleep(3)
-        self.pincer_pos_publisher.publish(0.1)
-        rospy.sleep(1)
-        quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
-        paddle_pose = Pose()
-        paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
+        paddle_pose.position.y = 0.38
         paddle_pose.position.z = 0
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
         paddle_pose.orientation.w = quaternion[3]
-        self.move_group_commander.set_pose_target(paddle_pose)
-        succ, plan, time, error_code = self.move_group_commander.plan()
-        if not succ:
-            self.move_group_commander.clear_pose_targets()
-            return  None
+        waypoints = []
+        wpose = copy.deepcopy(paddle_pose)
+        for i in range(24):
+            pose = copy.deepcopy(wpose)
+            pose.position.z = - 0.01 * i
+            waypoints.append(pose)
+        plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
+
+        rospy.sleep(1)
+        self.pincer_pos_publisher.publish(0.1)
+        rospy.sleep(1)
+        waypoints = []
+        for i in range(24):
+            pose = copy.deepcopy(wpose)
+            pose.position.z = -0.23 + 0.01 * i
+            waypoints.append(pose)
+        plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
+        self.move_group_commander.execute(plan, wait=True)
+        self.move_group_commander.stop()
+        self.move_group_commander.clear_pose_targets()
+
         rospy.sleep(1)
         return EmptyResponse()
 
@@ -209,7 +335,6 @@ class MotionControl():
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
          self.keeping = False
-
          return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
@@ -284,11 +409,27 @@ class MotionControl():
 
 
     def ResetCallback(self, req: EmptyRequest) -> EmptyResponse:
-
+        # quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
+        # paddle_pose = Pose()
+        # paddle_pose.position.x = 0.4
+        # paddle_pose.position.y = 0.0
+        # paddle_pose.position.z = -0.23
+        # paddle_pose.orientation.x = quaternion[0]
+        # paddle_pose.orientation.y = quaternion[1]
+        # paddle_pose.orientation.z = quaternion[2]
+        # paddle_pose.orientation.w = quaternion[3]
+        # self.move_group_commander.set_pose_target(paddle_pose)
+        # succ, plan, time, error_code = self.move_group_commander.plan()
+        # if not succ:
+        #     self.move_group_commander.clear_pose_targets()
+        #     return  None
+        # self.move_group_commander.execute(plan, wait=True)
+        # self.move_group_commander.stop()
+        # self.move_group_commander.clear_pose_targets()
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
-
-        value = joint_lookup_table(0.0) # move the arm to center position
+        value = [-3.450028078456225, 1.1812012540734964, 2.8532913410087053, 3.1416885303149615, -0.6757391589862014, -1.2594366618108317]
+        # value = joint_lookup_table(0.0) # move the arm to center position
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
         JointTrajectoryPoint_msg.positions = value
         JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
