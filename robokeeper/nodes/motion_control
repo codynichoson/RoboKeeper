@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 """ The motion_control node publishes jointTrajectory messages to actuate the HDT Adroit 6-dof arm to mimic a goalkeeper.
-    It also actuates the arm to a specified position using moveit commander when performing the step service.
+    It also actuates the arm to a specified position using moveit commander when performing tasks that do not require fast actuator response.
 
     SUBSCRIBERS:
-        goalie_coord (robokeeper/GoalieCoord) - 
+        goalie_coord (robokeeper/GoalieCoord) - x,y,z coordinates of the detected ball
 
     PUBLIHSERS:
         move_group/display_planned_path (moveit_msgs/DisplayTrajectory)
         pincer_joint_position_controller/command (std_msgs/Float64)
         arm_controller/command (trajectory_msgs/JointTrajectory)
+        /scores (robokeeper/Scores)
 
     
     SERVICE:
         reset (std_srvs/Empty) - resets arm position to keeper Home
-        step (std_srvs/Pose) - move to a new point and add the point to
-        keep (std_srvs/Empty) - reset to keeper Home
-        start_keeping (std_srvs/Empty) - 
-        stop_keeping (std_srvs/Empty) - 
+        step (std_srvs/Pose) - move robot end effector to a specified point in 3D space
+        keep (std_srvs/Empty) - if keeping flag is true, publish joint trajectory to arm controller to follow a moving ball
+        start_keeping (std_srvs/Empty) - set keeping flag to true
+        stop_keeping (std_srvs/Empty) - set keeping flag to false
         close (std_srvs/Empty) - close the pincer
         open (std_srvs/Empty) - open the pincer
-        move_hdt (std_srvs/Empty) - 
-    
+        above_paddle (std_srvs/Empty) - move robot end effector above the fixed paddle holster and open the gripper
+        retrieve_paddle (std_srvs/Empty) - move robot end effector to grab paddle from the fixed paddle holster 
 """
 import sys
 import copy
@@ -43,22 +44,23 @@ class MotionControl():
         Provide four service
     """
     def __init__(self) -> None:
+        # initialize node and moveit commander
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node('motion', anonymous=True)
         self.scene = moveit_commander.PlanningSceneInterface()
         rospy.sleep(1)
         self.robot = moveit_commander.RobotCommander()
 
-        # Adding collision object to the planning scene to simulate table
+        # Adding collision object to the planning scene to simulate the ground
         base_pose = geometry_msgs.msg.PoseStamped()
         base_pose.header.frame_id = 'base_link'
         base_pose.pose.position.x = 0
         base_pose.pose.position.y = 0
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
-        self.scene.attach_box('base_link','table', pose=base_pose, size=(5, 5, 1))
+        self.scene.attach_box('base_link','ground', pose=base_pose, size=(5, 5, 1))
         
-        # Adding collision object to the planning scene to simulate goal
+        # Adding collision object to the planning scene to simulate the goal
         base_pose = geometry_msgs.msg.PoseStamped()
         base_pose.header.frame_id = 'base_link'
         base_pose.pose.position.x = 0.15
@@ -91,14 +93,13 @@ class MotionControl():
         # base_pose.pose.orientation.w = 1.0
         # self.scene.attach_box('base_link','empty_box', pose=base_pose, size=(.25, .25, .18))
 
+        # initialize score counters
         self.ball_in_net = False
         self.goals = 0
         self.saves = 0
         
-        
         rospy.sleep(2)
 
-        
         # Initialize arm move group for moveit
         group_name = "arm"
         self.move_group_commander = moveit_commander.MoveGroupCommander(group_name)
@@ -109,7 +110,6 @@ class MotionControl():
         self.display_trajectory_publisher =\
             rospy.Publisher('/move_group/display_planned_path',moveit_msgs.msg.DisplayTrajectory,queue_size=20)
         self.pincer_pos_publisher = rospy.Publisher("/pincer_joint_position_controller/command", Float64,queue_size=10)
-        self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) ### Marco added this
         self.move_hdt_pub = rospy.Publisher("/arm_controller/command", JointTrajectory,queue_size=10) 
         self.score_pub = rospy.Publisher("/scores", Scores, queue_size = 10) # Publish scores
         
