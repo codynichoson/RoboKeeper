@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-PKG = 'robokeeper'
+#!/usr/bin/env python3
+# PKG = 'robokeeper'
 
 import sys
 import unittest
@@ -34,8 +34,12 @@ class RobokeeperTest(unittest.TestCase):
         # wait for message
         data = rospy.wait_for_message("arm_controller/command",JointTrajectory)
         self.assertEquals(data,JointState_msg)
+        # self.assertEquals(1,2)
+
+    def test_whatever(self):
+        # you can start writing your code here! :)
 
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun(PKG, 'robokeeper_test', RobokeeperTest)
+    rostest.rosrun('robokeeper', 'robokeeper_test', RobokeeperTest)

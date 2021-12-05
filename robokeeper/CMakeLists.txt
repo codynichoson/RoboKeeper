@@ -170,6 +170,7 @@ catkin_install_python(PROGRAMS
   nodes/transforms
   nodes/motion_control
   nodes/scorekeeper
+  test/robokeeper_test.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -212,8 +213,7 @@ catkin_install_python(PROGRAMS
 # endif()
 
 # Add rostest files
-if (CATKIN_ENABLE_TESTING)
+if(CATKIN_ENABLE_TESTING)
     find_package(rostest REQUIRED)
-    add_rostest(test/robokeeper.test
-    test/robokeeper_test.py)
+    add_rostest(test/robokeeper.test)
 endif()
