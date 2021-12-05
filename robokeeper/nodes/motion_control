@@ -7,10 +7,9 @@
 
     PUBLIHSERS:
         move_group/display_planned_path (moveit_msgs/DisplayTrajectory)
-        pincer_joint_position_controller/command (std_msgs/Float64)
-        arm_controller/command (trajectory_msgs/JointTrajectory)
-        /scores (robokeeper/Scores)
-
+        pincer_joint_position_controller/command (std_msgs/Float64) - desired joint position of the pincer
+        arm_controller/command (trajectory_msgs/JointTrajectory) - desired joint positions of the arm joints
+        /scores (robokeeper/Scores) - human score and robot score
     
     SERVICE:
         reset (std_srvs/Empty) - resets arm position to keeper Home
@@ -41,8 +40,8 @@ import numpy as np
 from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
 class MotionControl():
-    """ class MotionControl contain all function for the node
-        Provide four service
+    """ Initilaize motion_control node. 
+    publishes joint positions to arm and pincer controllers, causing the robotic arm to track the movement of the ball 
     """
     def __init__(self) -> None:
         # initialize node and moveit commander
@@ -102,6 +101,10 @@ class MotionControl():
         self.open_srv = rospy.Service("open", Empty, self.OpenCallback)
         self.rage_mode_srv = rospy.Service("rage_mode", Empty, self.RageCallback)
 
+        # Initialize subscriber
+        self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
+
+        # Set home pose
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         self.home_pose = Pose()
         self.home_pose.position.x = 0.32
@@ -111,14 +114,12 @@ class MotionControl():
         self.home_pose.orientation.z = quaternion[2]
         self.home_pose.orientation.w = quaternion[3]
 
+        # flags and variables needed for keeping algorithm
         self.now_keep = True
         self.current_y = 0
 
         self.msg_count = 0
         self.keeping = False
-
-        # Initialize subscriber
-        self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
 
         self.pre_y = [0, 0, 0, 0, 0, 0]
         self.paddle_x_coord = 0
@@ -130,7 +131,17 @@ class MotionControl():
         start = self.ResetCallback(EmptyRequest)
 
     def RageCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the rage_mode service
+        Puts the robot into rage mode. Sends moveit commands to move robot end effector to the -x position,
+        then releases the paddle. 
 
+         Args:
+          req (std_msgs/Empty)
+        Returns:
+           EmptyResponse
+        """
+
+        # waypoint 1
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         rage_pose = Pose()
         rage_pose.position.x = 0.4
@@ -149,7 +160,8 @@ class MotionControl():
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
         rospy.sleep(1)
-
+        
+        # waypoint 2
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         rage_pose = Pose()
         rage_pose.position.x = 0
@@ -169,6 +181,7 @@ class MotionControl():
         self.move_group_commander.clear_pose_targets()
         rospy.sleep(1)
 
+        #waypoint 3
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         rage_pose = Pose()
         rage_pose.position.x = -0.4
@@ -190,12 +203,21 @@ class MotionControl():
         self.pincer_pos_publisher.publish(0.8)
 
     def PaddleAboveCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the above_paddle service
+        The robot moves its end effector above the paddle holster, and opens the gripper.
+
+         Args:
+          req (std_msgs/Empty)
+        Returns:
+           EmptyResponse
+        """
         # vertical_movement = [0,-0.1,0]
         # for i in vertical_movement:
         self.final_paddle_x = self.paddle_x_coord
         self.final_paddle_y = self.paddle_y_coord
         self.final_paddle_z = self.paddle_z_coord
 
+        # waypoint 1
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0.4
@@ -207,6 +229,7 @@ class MotionControl():
         paddle_pose.orientation.w = quaternion[3]
         waypoints = []
         wpose = copy.deepcopy(paddle_pose)
+        # create sub-waypoints for the arm to follow
         for i in range(24):
             pose = copy.deepcopy(wpose)
             pose.position.z = -0.23 + 0.005 * i
@@ -218,6 +241,7 @@ class MotionControl():
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
 
+        # waypoint 2
         quaternion = quaternion_from_euler(0, 1.5707, 1.57, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
@@ -229,6 +253,7 @@ class MotionControl():
         paddle_pose.orientation.w = quaternion[3]
         waypoints = []
         wpose = copy.deepcopy(paddle_pose)
+        # create sub-waypoints for the arm to follow
         for i in range(15):
             pose = copy.deepcopy(wpose)
             pose.position.z = -0.1 + 0.01 * i
@@ -257,13 +282,25 @@ class MotionControl():
         # self.move_group_commander.execute(plan, wait=True)
         # self.move_group_commander.stop()
         # self.move_group_commander.clear_pose_targets()
-
+        
+        # open gripper
         self.pincer_pos_publisher.publish(0.8)
+        
         return EmptyResponse()
 
     def PaddleRetrieveCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the retrieve_paddle service
+        The robot moves its end effector to grab the paddle, then return to the above_paddle position.
+
+         Args:
+          req (std_msgs/Empty)
+        Returns:
+           EmptyResponse
+        """
         # vertical_movement = [0,-0.1,0]
         # for i in vertical_movement:
+
+        # waypoint 1
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = 0
@@ -275,6 +312,7 @@ class MotionControl():
         paddle_pose.orientation.w = quaternion[3]
         waypoints = []
         wpose = copy.deepcopy(paddle_pose)
+        # create sub-waypoints for the arm to follow
         for i in range(24):
             pose = copy.deepcopy(wpose)
             pose.position.z = - 0.01 * i
@@ -283,10 +321,13 @@ class MotionControl():
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
-
         rospy.sleep(1)
+        
+        # close gripper
         self.pincer_pos_publisher.publish(0.1)
         rospy.sleep(1)
+        
+        # waypoint 2
         waypoints = []
         for i in range(24):
             pose = copy.deepcopy(wpose)
@@ -302,64 +343,98 @@ class MotionControl():
 
 
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
-         self.keeping = True
-         return EmptyResponse()
+        """ Callback function for the start_keeping service
+        Set keeping to True
+         Args:
+            req (std_msgs/Empty)
+        Returns:
+            EmptyResponse
+        """
+        self.keeping = True
+        return EmptyResponse()
 
     def StopingCallback(self, req: EmptyRequest) -> EmptyResponse:
-         self.keeping = False
-         return EmptyResponse()
+        """ Callback function for the stop_keeping service
+        Set keeping to False
+         Args:
+            req (std_msgs/Empty)
+        Returns:
+            EmptyResponse
+        """
+        self.keeping = False
+        return EmptyResponse()
 
     def PositionInputCallback(self, msg : Goalie_coord) -> None:
-        self.msg_count +=1
-        #rospy.loginfo(f"x-coord: {msg.x}, y-coord: {msg.y}")
+        """ Callback function for the Goalie_coord message
+        interprets current x,y,z position of the ball in frame and sends corresponding joint trajectory 
+        commands to the arm controller to move the arm, and determine whether the ball is in the net.  
 
+         Args:
+            msg (robokeeper/Goalie_coord)
+        """
+
+        self.msg_count +=1
+
+        # if not keeping, do nothing
         if not self.keeping:
             self.msg_count = 0
             return
 
+        # if keeping:
+        # initialize joint trajectory message to publish to arm_controller/command topic.
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        # look for predefined joint angles from the dictionary that corresponds to the current
+        # y-position of the ball + kd*dy
         joint_angles = joint_lookup_table(msg.y + 2.25*(msg.y - self.pre_y[0]))
 
+        # if the ball is close to the arm, offset joint 4 angle by -0.5 rad 
         if msg.x <-0.6:
             joint_angles[4] = joint_angles[4]-0.5  # Flicking motion
 
+        # construct joint trajectory message
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
         JointTrajectoryPoint_msg.positions = joint_angles
         JointTrajectoryPoint_msg.time_from_start.nsecs = 10000000
         JointState_msg.points = [JointTrajectoryPoint_msg] 
 
+        # scorekeeping
         self.previous_ball_in_net = self.ball_in_net
-
         scores = Scores()
 
-        if msg.x>-1:
+        if msg.x>-1: # ball is not in the net
             self.move_hdt_pub.publish(JointState_msg)
             self.ball_in_net = False
-        elif msg.x < -1 and msg.y > -0.25 and msg.y < 0.25:
+        elif msg.x < -1 and msg.y > -0.25 and msg.y < 0.25: # ball is in the net
             self.ball_in_net = True
-            if self.ball_in_net == True and self.previous_ball_in_net == False:
+            if self.ball_in_net == True and self.previous_ball_in_net == False: 
+                # if the ball was previously not in the net, increment human score
                 self.goals += 1
 
         rospy.loginfo(f"Ball in Net?: {self.ball_in_net}")
         rospy.loginfo(f"Goals: {self.goals}")
 
+        # publish scores
         scores.human = self.goals
         scores.robot = 0
         self.score_pub.publish(scores)
 
+        # previous y is set to current y
         self.pre_y.pop(0)
         self.pre_y.append(msg.y)
 
 
     def StepCallback(self, req: MoveitRequest) -> MoveitResponse:
-        """ Step callback function
-            parameter
-                req: MoveitRequest (Pose, bool)
+        """ Callback function for the step service
+        Command arm to move the end-effector to a specified configuration using moveit
+            Args:
+                req (robokeeper/MoveitRequest)
             return
-                rtn: MoveitResponse (MoveItErrorCodes)
+                MoveitResponse
         """ 
         res = MoveitResponse()
+        # MoveIt command
         self.move_group_commander.set_pose_target(req.pose)
         succ, plan, time, error_code = self.move_group_commander.plan()
         if not succ:
@@ -370,16 +445,24 @@ class MotionControl():
         self.move_group_commander.execute(plan, wait=True)
         self.move_group_commander.stop()
         self.move_group_commander.clear_pose_targets()
+        # publish to pincer_joint_position_controller to open/close gripper
         if req.open:
             self.pincer_pos_publisher.publish(0.8)
         else:
             self.pincer_pos_publisher.publish(0.1)
-        self.move_group_grap.stop()
+
         res.code.val = moveit_msgs.msg.MoveItErrorCodes.SUCCESS
         return res
 
 
     def ResetCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the reset service
+        Command arm to move the end-effector to the home position
+            Args:
+                req (std_msgs/Empty)
+            return
+                EmptyResponse
+        """ 
         # quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         # paddle_pose = Pose()
         # paddle_pose.position.x = 0.4
@@ -397,8 +480,12 @@ class MotionControl():
         # self.move_group_commander.execute(plan, wait=True)
         # self.move_group_commander.stop()
         # self.move_group_commander.clear_pose_targets()
+
+        # initialize joint trajectory message to publish to arm_controller/command topic.
         JointState_msg = JointTrajectory()
         JointState_msg.joint_names = ['joint1','joint2','joint3','joint4','joint5','joint6']
+
+        # command arm to move joints to predefined home position
         value = [-3.450028078456225, 1.1812012540734964, 2.8532913410087053, 3.1416885303149615, -0.6757391589862014, -1.2594366618108317]
         # value = joint_lookup_table(0.0) # move the arm to center position
         JointTrajectoryPoint_msg = JointTrajectoryPoint()
@@ -411,6 +498,12 @@ class MotionControl():
 
 
     def KeeperCallback(self, req: KeeperRequest) -> KeeperResponse:
+        """ Callback function for the keep service
+            Args:
+                req (robokeeper/KeeperRequest)
+            return
+                KeeperResponse
+        """ 
         res = KeeperResponse()
         if  -0.3 < req.pos < 0.3:
             if not self.now_keep:
@@ -456,10 +549,24 @@ class MotionControl():
         return res
 
     def CloseCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the close service
+        Command gripper to close
+            Args:
+                req (std_msgs/Empty)
+            return
+                EmptyResponse
+        """ 
         self.pincer_pos_publisher.publish(0.1)
         return EmptyResponse()
     
     def OpenCallback(self, req: EmptyRequest) -> EmptyResponse:
+        """ Callback function for the open service
+        Command gripper to open
+            Args:
+                req (std_msgs/Empty)
+            return
+                EmptyResponse
+        """ 
         self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
 
