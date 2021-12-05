@@ -22,6 +22,7 @@
         open (std_srvs/Empty) - open the pincer
         above_paddle (std_srvs/Empty) - move robot end effector above the fixed paddle holster and open the gripper
         retrieve_paddle (std_srvs/Empty) - move robot end effector to grab paddle from the fixed paddle holster 
+        rage_mode (std_srvs/Empty) - go rage mode
 """
 import sys
 import copy
@@ -69,30 +70,6 @@ class MotionControl():
         base_pose.pose.orientation.w = 1.0
         self.scene.attach_box('base_link','goal', pose=base_pose, size=(.18, .6, .4))
        
-        # base_pose = geometry_msgs.msg.PoseStamped()
-        # base_pose.header.frame_id = 'base_link'
-        # base_pose.pose.position.x = 0
-        # base_pose.pose.position.y = 0.3
-        # base_pose.pose.position.z = -0.3
-        # base_pose.pose.orientation.w = 1.0
-        # self.scene.attach_box('base_link','left_link', pose=base_pose, size=(.1, .28, .06))
-
-        # base_pose = geometry_msgs.msg.PoseStamped()
-        # base_pose.header.frame_id = 'base_link'
-        # base_pose.pose.position.x = 0
-        # base_pose.pose.position.y = -0.3
-        # base_pose.pose.position.z = -0.3
-        # base_pose.pose.orientation.w = 1.0
-        # self.scene.attach_box('base_link','right_link', pose=base_pose, size=(.1, .28, .06))
-
-        # base_pose = geometry_msgs.msg.PoseStamped()
-        # base_pose.header.frame_id = 'base_link'
-        # base_pose.pose.position.x = -0.3
-        # base_pose.pose.position.y = 0
-        # base_pose.pose.position.z = -0.1
-        # base_pose.pose.orientation.w = 1.0
-        # self.scene.attach_box('base_link','empty_box', pose=base_pose, size=(.25, .25, .18))
-
         # initialize score counters
         self.ball_in_net = False
         self.goals = 0
@@ -142,14 +119,14 @@ class MotionControl():
 
         # Initialize subscriber
         self.sub = rospy.Subscriber("/Goalie_coord", Goalie_coord, self.PositionInputCallback)
-        self.sub = rospy.Subscriber("/Paddle_coord", Goalie_coord, self.PaddleInputCallback)
 
         self.pre_y = [0, 0, 0, 0, 0, 0]
         self.paddle_x_coord = 0
         self.paddle_y_coord = 0
         self.paddle_z_coord = 0
         rospy.sleep(5)
-        # Reseting robot position
+
+        # Reseting robot to home position
         start = self.ResetCallback(EmptyRequest)
 
     def RageCallback(self, req: EmptyRequest) -> EmptyResponse:
@@ -211,11 +188,6 @@ class MotionControl():
         self.move_group_commander.clear_pose_targets()
         rospy.sleep(3)
         self.pincer_pos_publisher.publish(0.8)
-
-    def PaddleInputCallback(self, msg : Goalie_coord) -> None:
-        self.paddle_x_coord = msg.x
-        self.paddle_y_coord = msg.y
-        self.paddle_z_coord = msg.z
 
     def PaddleAboveCallback(self, req: EmptyRequest) -> EmptyResponse:
         # vertical_movement = [0,-0.1,0]
@@ -484,14 +456,10 @@ class MotionControl():
         return res
 
     def CloseCallback(self, req: EmptyRequest) -> EmptyResponse:
-        # self.move_group_grap.go([0.0, 0.0, 0.0], wait=True)
-        # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.1)
         return EmptyResponse()
     
     def OpenCallback(self, req: EmptyRequest) -> EmptyResponse:
-        # self.move_group_grap.go([0.3, 0.0, 0.0], wait=True)
-        # self.move_group_grap.stop()
         self.pincer_pos_publisher.publish(0.8)
         return EmptyResponse()
 
