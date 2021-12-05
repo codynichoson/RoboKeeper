@@ -44,6 +44,16 @@ class MotionControl():
     publishes joint positions to arm and pincer controllers, causing the robotic arm to track the movement of the ball 
     """
     def __init__(self) -> None:
+        self.paddle_x = rospy.get_param("/paddle_x")
+        self.paddle_y = rospy.get_param("/paddle_y")
+        self.paddle_z_above = rospy.get_param("/paddle_z_above")
+        self.paddle_z_align = rospy.get_param("/paddle_z_align")
+        self.ground_l = rospy.get_param("/ground_l")
+        self.ground_w = rospy.get_param("/ground_w")
+        self.ground_h = rospy.get_param("/ground_h")
+        self.goal_l = rospy.get_param("/goal_l")
+        self.goal_w = rospy.get_param("/goal_w")
+        self.goal_h = rospy.get_param("/goal_h")
         # initialize node and moveit commander
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node('motion', anonymous=True)
@@ -58,7 +68,7 @@ class MotionControl():
         base_pose.pose.position.y = 0
         base_pose.pose.position.z = -1
         base_pose.pose.orientation.w = 1.0
-        self.scene.attach_box('base_link','ground', pose=base_pose, size=(5, 5, 1))
+        self.scene.attach_box('base_link','ground', pose=base_pose, size=(self.ground_l, self.ground_w, self.ground_h))
         
         # Adding collision object to the planning scene to simulate the goal
         base_pose = geometry_msgs.msg.PoseStamped()
@@ -67,7 +77,7 @@ class MotionControl():
         base_pose.pose.position.y = 0
         base_pose.pose.position.z = -.2
         base_pose.pose.orientation.w = 1.0
-        self.scene.attach_box('base_link','goal', pose=base_pose, size=(.18, .6, .4))
+        self.scene.attach_box('base_link','goal', pose=base_pose, size=(self.goal_l, self.goal_w, self.goal_h))
        
         # initialize score counters
         self.ball_in_net = False
@@ -122,9 +132,7 @@ class MotionControl():
         self.keeping = False
 
         self.pre_y = [0, 0, 0, 0, 0, 0]
-        self.paddle_x_coord = 0
-        self.paddle_y_coord = 0
-        self.paddle_z_coord = 0
+
         rospy.sleep(5)
 
         # Reseting robot to home position
@@ -213,16 +221,14 @@ class MotionControl():
         """
         # vertical_movement = [0,-0.1,0]
         # for i in vertical_movement:
-        self.final_paddle_x = self.paddle_x_coord
-        self.final_paddle_y = self.paddle_y_coord
-        self.final_paddle_z = self.paddle_z_coord
+
 
         # waypoint 1
         quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
         paddle_pose = Pose()
-        paddle_pose.position.x = 0.4
-        paddle_pose.position.y = 0
-        paddle_pose.position.z = -0.23
+        paddle_pose.position.x = self.paddle_x 
+        paddle_pose.position.y = self.paddle_y
+        paddle_pose.position.z = self.paddle_z_above
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
@@ -303,9 +309,9 @@ class MotionControl():
         # waypoint 1
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
-        paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.38
-        paddle_pose.position.z = 0
+        paddle_pose.position.x = self.paddle_x 
+        paddle_pose.position.y = self.paddle_y
+        paddle_pose.position.z = self.paddle_z_above
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
