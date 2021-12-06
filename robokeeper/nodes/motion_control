@@ -227,11 +227,9 @@ class MotionControl():
     def KeepingCallback(self, req: EmptyRequest) -> EmptyResponse:
         """ Callback function for the start_keeping service
         Set keeping to True
-         Args:
+        Args:
             req (std_msgs/Empty)
-        Returns:ERROR: The following tests failed to run:
- * testrobokeeper_test
-
+        Returns: 
             EmptyResponse
         """
         self.keeping = True
@@ -240,9 +238,9 @@ class MotionControl():
     def StoppingCallback(self, req: EmptyRequest) -> EmptyResponse:
         """ Callback function for the stop_keeping service
         Set keeping to False
-         Args:
+        Args:
             req (std_msgs/Empty)
-        Returns:
+        Returns: 
             EmptyResponse
         """
         self.keeping = False
@@ -347,23 +345,6 @@ class MotionControl():
             return
                 EmptyResponse
         """ 
-        # quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
-        # paddle_pose = Pose()
-        # paddle_pose.position.x = 0.4
-        # paddle_pose.position.y = 0.0
-        # paddle_pose.position.z = -0.23
-        # paddle_pose.orientation.x = quaternion[0]
-        # paddle_pose.orientation.y = quaternion[1]
-        # paddle_pose.orientation.z = quaternion[2]
-        # paddle_pose.orientation.w = quaternion[3]
-        # self.move_group_commander.set_pose_target(paddle_pose)
-        # succ, plan, time, error_code = self.move_group_commander.plan()
-        # if not succ:
-        #     self.move_group_commander.clear_pose_targets()
-        #     return  None
-        # self.move_group_commander.execute(plan, wait=True)
-        # self.move_group_commander.stop()
-        # self.move_group_commander.clear_pose_targets()
 
         # initialize joint trajectory message to publish to arm_controller/command topic.
         JointState_msg = JointTrajectory()
