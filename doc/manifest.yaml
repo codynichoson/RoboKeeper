@@ -1,0 +1,39 @@
+actions: []
+authors: ''
+brief: ''
+bugtracker: ''
+depends:
+- rosserial_python
+- gazebo_ros
+- xacro
+- joint_state_publisher
+- hdt_adroit_control
+- realsense2_camera
+- robot_state_publisher
+- hdt_6dof_a24_pincer_moveit
+- catkin
+- message_runtime
+- joint_state_publisher_gui
+- moveit_msgs
+- apriltag_ros
+- rviz
+- geometry_msgs
+- message_generation
+- cv_bridge
+- hdt_6dof_a24_pincer_description
+- std_msgs
+- rostest
+- controller_manager
+description: robokeeper
+license: TODO
+maintainers: codynichoson <codynichoson@todo.todo>
+msgs:
+- Scores
+- Xy_depth
+- Goalie_coord
+package_type: package
+repo_url: ''
+srvs:
+- Moveit
+- Keeper
+url: ''
