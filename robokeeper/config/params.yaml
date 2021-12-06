@@ -1,5 +1,5 @@
-paddle_x: 0.40
-paddle_y: 0
+paddle_x: 0
+paddle_y: 0.405
 paddle_z_above: 0
 paddle_z_align: -0.23
 ground_l: 5

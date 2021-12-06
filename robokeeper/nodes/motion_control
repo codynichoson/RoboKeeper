@@ -149,60 +149,11 @@ class MotionControl():
         # vertical_movement = [0,-0.1,0]
         # for i in vertical_movement:
 
-
-        # # waypoint 1
-        # quaternion = quaternion_from_euler(0, 1.5707, 0, axes='sxyz')
-        # paddle_pose = Pose()
-        # paddle_pose.position.x = self.paddle_x 
-        # paddle_pose.position.y = self.paddle_y
-        # paddle_pose.position.z = self.paddle_z_above
-        # paddle_pose.orientation.x = quaternion[0]
-        # paddle_pose.orientation.y = quaternion[1]
-        # paddle_pose.orientation.z = quaternion[2]
-        # paddle_pose.orientation.w = quaternion[3]
-        # waypoints = []
-        # wpose = copy.deepcopy(paddle_pose)
-        # # create sub-waypoints for the arm to follow
-        # for i in range(24):
-        #     pose = copy.deepcopy(wpose)
-        #     pose.position.z = -0.23 + 0.005 * i
-        #     pose.position.y = 0.01 * i
-        #     pose.position.x = 0.4 - 0.01 * i
-        #     waypoints.append(pose)
-        # plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
-        # self.move_group_commander.execute(plan, wait=True)
-        # self.move_group_commander.stop()
-        # self.move_group_commander.clear_pose_targets()
-
-        # # waypoint 2
-        # quaternion = quaternion_from_euler(0, 1.5707, 1.57, axes='sxyz')
-        # paddle_pose = Pose()
-        # paddle_pose.position.x = 0
-        # paddle_pose.position.y = 0.38
-        # paddle_pose.position.z = 0
-        # paddle_pose.orientation.x = quaternion[0]
-        # paddle_pose.orientation.y = quaternion[1]
-        # paddle_pose.orientation.z = quaternion[2]
-        # paddle_pose.orientation.w = quaternion[3]
-        # waypoints = []
-        # wpose = copy.deepcopy(paddle_pose)
-        # # create sub-waypoints for the arm to follow
-        # for i in range(15):
-        #     pose = copy.deepcopy(wpose)
-        #     pose.position.z = -0.1 + 0.01 * i
-        #     pose.position.y = 0.24 + 0.01 * i
-        #     pose.position.x = 0.14 - 0.01 * i
-        #     waypoints.append(pose)
-        # plan, fraction = self.move_group_commander.compute_cartesian_path(waypoints, 0.01, 0.0)
-        # self.move_group_commander.execute(plan, wait=True)
-        # self.move_group_commander.stop()
-        # self.move_group_commander.clear_pose_targets()
-
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
-        paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
-        paddle_pose.position.z = 0
+        paddle_pose.position.x = self.paddle_x 
+        paddle_pose.position.y = self.paddle_y
+        paddle_pose.position.z = self.paddle_z_above
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
@@ -232,9 +183,9 @@ class MotionControl():
         """
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
-        paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
-        paddle_pose.position.z = -0.23
+        paddle_pose.position.x = self.paddle_x 
+        paddle_pose.position.y = self.paddle_y
+        paddle_pose.position.z = self.paddle_z_align
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
@@ -254,9 +205,9 @@ class MotionControl():
         
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
-        paddle_pose.position.x = 0
-        paddle_pose.position.y = 0.405
-        paddle_pose.position.z = 0
+        paddle_pose.position.x = self.paddle_x 
+        paddle_pose.position.y = self.paddle_y
+        paddle_pose.position.z = self.paddle_z_above
         paddle_pose.orientation.x = quaternion[0]
         paddle_pose.orientation.y = quaternion[1]
         paddle_pose.orientation.z = quaternion[2]
