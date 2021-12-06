@@ -9,10 +9,10 @@ project(robokeeper)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  message_generation
-  std_msgs
   geometry_msgs
+  message_generation
   moveit_msgs
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -51,16 +51,16 @@ catkin_python_setup()
 # Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  Xy_depth.msg
   Goalie_coord.msg
   Scores.msg
+  Xy_depth.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  Moveit.srv
   Keeper.srv
+  Moveit.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -73,9 +73,9 @@ add_service_files(
 # Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs
   geometry_msgs
   moveit_msgs
+  std_msgs
     # Or other packages containing msgs
 )
 
@@ -111,7 +111,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robokeeper
- CATKIN_DEPENDS message_runtime std_msgs geometry_msgs moveit_msgs
+ CATKIN_DEPENDS geometry_msgs message_runtime moveit_msgs std_msgs 
 #  DEPENDS system_lib
 )
 
@@ -170,7 +170,7 @@ catkin_install_python(PROGRAMS
   nodes/transforms
   nodes/motion_control
   nodes/scorekeeper
-  test/robokeeper_test.py
+  test/${PROJECT_NAME}_test.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -215,5 +215,5 @@ catkin_install_python(PROGRAMS
 # Add rostest files
 if(CATKIN_ENABLE_TESTING)
     find_package(rostest REQUIRED)
-    add_rostest(test/robokeeper.test)
+    add_rostest(test/${PROJECT_NAME}.test)
 endif()
