@@ -1,5 +1,18 @@
 #!/usr/bin/env python
+""" The perception mode reads the color and depth images from the Intel RealSense camera. Using these streams of information, it locates the ball and finds its coordinates by using intrinsics.
+    It publishes this information to a topic and draws visual indicators on the ball to show it is being tracked.
 
+    SUBSCRIBERS:
+        camera/aligned_depth_to_color/camera_info (sensor_msgs/CameraInfo) - Camera information to use for intrinsics
+        camera/color/image_raw (sensor_msgs/Image) - The raw color image from the camera for color detection
+        camera/aligned_depth_to_color/image_raw (sensor_msgs/Image) - The raw aligned depth color image from the camera for depth data
+
+    PUBLIHSERS:
+        Xy_depth (robokeeper/Xy_depth) - x,y,z coordinates of the ball with respect to the camera's frame
+    
+    SERVICE:
+        None
+"""
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
@@ -9,9 +22,13 @@ import numpy as np
 import pyrealsense2 as rs
 
 class GetData(object):
+    """ 
+    Using the color and depth video streams from the camera, create a contour on the red ball and create three dimensional coordinates 
+    """
     def __init__(self):
-
+        #Converts ROS images to a format for OpenCV
         self._bridge = CvBridge()
+        #Subscribe to camera_info to get intrinsics data
         rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.get_info)
         #Subcribe to topic that publishes color picture
         rospy.Subscriber("/camera/color/image_raw", Image, self.callback_color)
@@ -19,11 +36,19 @@ class GetData(object):
         rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth) # Use this for depth data
         #Setup publisher for publishing centroid coordinates and depth
         self.pub = rospy.Publisher("Xy_depth", Xy_depth, queue_size=10)
+        #Initialize an initial cx and cy coordinate for the centroid
         self.cx = 0
         self.cy = 0
 
     def show_img(self, img):
-        """ Function to display video """
+        """ 
+        Function:
+            Displays a top down view of the robot and ball
+        Args:
+            img- The color video stream
+        Returns:
+           None
+        """
 
         # Show video
         cv2.namedWindow("Image", 1)
@@ -31,61 +56,69 @@ class GetData(object):
         cv2.waitKey(3)
     
     def draw_cont(self,img):
-        #Convert image from BGR to HSV- Shouldnt it be RGB to HSV? If you do that, contours look for blue and not red.
+        """ 
+        Function:
+            Draws contours of the red ball as well as a circle and rectangle on the ball in the color video stream
+        Args:
+            img- The color video stream
+        Returns:
+           None
+        """
+        #Convert image to HSV
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        #Create range of HSV values for red
+        #Range of HSV values for red
         lower_range = np.array([0, 225, 163])
         upper_range = np.array([20, 255, 226])
-        #Create mask, blurred image
+        #Create mask based on HSV ranges and then dilate and blur
         mask = cv2.inRange(hsv, lower_range, upper_range) 
         kernel = np.ones((7,7), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
-        # mask = cv2.erode(mask, kernel, iterations=3)
         blur = cv2.GaussianBlur(mask,(5,5),0)
 
         
-        num_cont = 0
-        #Draw contours based on blurred image
+        #Draw contours based on blurred mask
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        # cv2.drawContours(img, contours, num_cont, (0,0,255), 3)
-        ball_state = 0
-        self.pass_flag = 0
-        try:
 
+        try:
             #Find the largest contour
             cnt = max(contours,key=cv2.contourArea)
             
-            #rospy.logerr(len(cnt))
             #Create moment of largest contour
             M = cv2.moments(cnt)
-            #rospy.logerr(len(cnt))
+
             if len(cnt) > 20:
-                self.pass_flag = 1
+                #Create a flag for the ball being in frame and set it to 1
                 self.ball_flag = 1
-                # ball_state = 1
                 #Find centroid of contour
                 self.cx = int(M['m10']/M['m00'])
                 self.cy = int(M['m01']/M['m00'])
+                #Create a circle and rectangle on the ball
                 cv2.circle(img, (self.cx,self.cy), 5, (150,50,100), -1)
                 cv2.rectangle(img, (self.cx-25, self.cy-25), (self.cx+25, self.cy+25), (150,50,100), 3)
             else:
+                #Indicate that the ball flag is 0 and so the ball is not in frame
                 self.ball_flag = 0
         except:
+            #Indicate that the ball flag is 0 and so the ball is not in frame
             self.ball_flag = 0
-            self.pass_flag = 0
             pass
         # return ball_state
                 
     def xyz_from_intrin(self,img,cx,cy):
-        '''
-        Function: Creates coordinates from pixel data
-        Arguments: Depth image, pixel in x coordinate and pixel in z coordinate
-        '''
+        """ 
+        Function: Creates x,y,z coordiantes from the centoid coordinates and publishes them to the topic Xy_depth with the ball_flag state
+        Args:
+            img- The depth video stream 
+            cx- the x value of the centroid
+            cy- the y value of the centroid
+        Returns:
+           None
+        """
         
         result = rs.rs2_deproject_pixel_to_point(self.intrinsics, [cx,cy], img[cy,cx]*0.001)
         print(result)
 
-        # Assemble message to publish x, y, and depth data
+        # Assemble message to publish x, y, depth data and the ball flag
         msg = Xy_depth()
         msg.x = result[0]
         msg.y = result[1]
@@ -96,6 +129,14 @@ class GetData(object):
 
 
     def get_info(self,data):  
+        """ 
+        Function: Callback function for geting camera information for intrinsics 
+        Args:
+            data (sensor_msgs/CameraInfo)
+        Returns:
+            None
+        """
+        #Fill in the parameters for instrinsics from camera_info
         self.intrinsics = rs.intrinsics()
         self.intrinsics.width = data.width
         self.intrinsics.height = data.height
@@ -107,27 +148,39 @@ class GetData(object):
         self.intrinsics.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
         
     def callback_color(self,data):
-        """ Callback function for geting color image from camera """
+        """ 
+        Function: Callback function for geting color image from camera
+        Args:
+            data (sensor_msgs/Image)
+        Returns:
+            None
+        """
         #Get the color image from camera
         color_img = self._bridge.imgmsg_to_cv2(data, "passthrough")
         #convert to RGB
         color_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
         #Call the draw contour function
         result = self.draw_cont(color_img)
-        # if result ==1:
-            #Call the function that creates x,y,z coordinates
-        
         coords = self.xyz_from_intrin(self.depth_image,self.cx,self.cy)
         #Show the color image with contours
         self.show_img(color_img)
 
     def callback_depth(self,data):
-        """ Callback function for getting depth data from aligned depth to color"""
+        """ 
+        Function: Callback function for getting depth data from aligned depth to color
+        Args:
+            data (sensor_msgs/Image)
+        Returns:
+            None
+        """
         #Create a depth image from camera. Make it self to be called throughout the code.
         self.depth_image = self._bridge.imgmsg_to_cv2(data, "passthrough")
 
     
 if __name__=="__main__":
+    #Initialize the perceoption node
     rospy.init_node("perception")
+    #Start GetData
     c = GetData()
+    #Prevent the node from stopping
     rospy.spin()
