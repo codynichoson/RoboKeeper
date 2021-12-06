@@ -14,12 +14,20 @@ edit `custom_ws/src/hdt_6dof_a24_pincer/hdt_6dof_a24_pincer_moveit/config/kinema
 ### Overview
 The Robokeeper ROS Noetic package allows HDT Adroit 6-dof manipulator arm to play goalkeeper.
 
+### Equipment
+##### Hardware:
+- HDT Global Adroit Manipulator Arm
+- Intel RealSense Camera
+##### Software:
+- Robot Operating System (ROS)
+- MoveIt!
+- OpenCV
+
 ### Dependencies
 
 ### Quickstart Guide
 0. Install ROS Noetic on Ubuntu 20.04
 1. Create catkin workspace
-
     ```
     $ source /opt/ros/noetic/setup.bash
     $ mkdir -p ~/catkin_ws/src
@@ -63,8 +71,9 @@ Knowing where the ball is relative to the camera is great, but it doesn't help t
 In order to complete the relationship between the two frames, an AprilTag with a known transformation between itself and the baselink of the robot (positioned on the floor next to the robot) was used. Using the RealSense, the transformation between the camera frame and the AprilTag can then also be determined. Using these three frames and their relationships, the transformation between coordinates in the camera frame and coordinates in the robot frame can finally be determined.
 
 #### motion_control
-This node provides the core functionality of the robokeeper.
+This node provides the core functionality of the robokeeper.Primarily, it subscribes to the topic containing the ball coordinates in the robot frame and contains a number of services utilized to interact with its environment in several ways.
 
+The main service used is /start_keeping. As the name suggests, this service allows the robot to begin interpreting the ball coordinates and attempting to intersect it at the goal line. Appropriate joint trajectory commands are sent to the robot through a mix of MoveIt! and direct joint publishing (depending on the service called) in order to accomplish the task. This node also keeps track of goals scored by determining if the ball has entered the net.
 
 ### System Architecture
 
