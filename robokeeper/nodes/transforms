@@ -91,13 +91,22 @@ class Transforms():
         TApril_Cam1 = mr.TransInv(TCam_April1) # Transofmr of camera relative to AprilTag
 
         # Transform of AprilTag relative to robot frame (measured physically)
-        TRobot_April1 = np.array([[1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1]])
+        TRobot_April1 = np.array([[1, 0, 0,  0.5],
+                                  [0, 1, 0,    0],
+                                  [0, 0, 1, 0.45],
+                                  [0, 0, 0,    1]])
 
         # Transform of ball coordinates in camera frame
-        TCamera_Ball = np.array([[1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1]])
+        TCamera_Ball = np.array([[1, 0, 0, self.ball_x],
+                                 [0, 1, 0, self.ball_y],
+                                 [0, 0, 1, self.ball_z],
+                                 [0, 0, 0,           1]])
 
         # Transform of camera in robot frame
-        TRobot_Camera = np.array([[1,0,0,-0.61],[0,1,0,0],[0,0,1,1],[0,0,0,1]])
+        TRobot_Camera = np.array([[1, 0, 0, -0.61],
+                                  [0, 1, 0,     0],
+                                  [0, 0, 1,     1],
+                                  [0, 0, 0,     1]])
 
         # Calculate transform of ball coordinates in robot frame
         TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
