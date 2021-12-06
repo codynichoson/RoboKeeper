@@ -65,18 +65,16 @@ class GetData(object):
         
         #Draw contours based on blurred mask
         contours, hierarchy = cv2.findContours(blur,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        self.pass_flag = 0
-        try:
 
+        try:
             #Find the largest contour
             cnt = max(contours,key=cv2.contourArea)
             
-
             #Create moment of largest contour
             M = cv2.moments(cnt)
 
             if len(cnt) > 20:
-                self.pass_flag = 1
+                #Create a flag for the ball being in frame and set it to 1
                 self.ball_flag = 1
                 #Find centroid of contour
                 self.cx = int(M['m10']/M['m00'])
@@ -84,10 +82,11 @@ class GetData(object):
                 cv2.circle(img, (self.cx,self.cy), 5, (150,50,100), -1)
                 cv2.rectangle(img, (self.cx-25, self.cy-25), (self.cx+25, self.cy+25), (150,50,100), 3)
             else:
+                #Indicate that the ball flag is 0 and so the ball is not in frame
                 self.ball_flag = 0
         except:
+            #Indicate that the ball flag is 0 and so the ball is not in frame
             self.ball_flag = 0
-            self.pass_flag = 0
             pass
         # return ball_state
                 
@@ -167,5 +166,7 @@ class GetData(object):
 if __name__=="__main__":
     #Initialize the perceoption node
     rospy.init_node("perception")
+    #Start GetData
     c = GetData()
+    #Prevent the node from stopping
     rospy.spin()
