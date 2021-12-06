@@ -1,12 +1,22 @@
 #!/usr/bin/env python
+""" This node is not in use. It contains the infrastructure for displaying a GUI scoreboard to show the user
+    if a goal has been scored or the robot registered a block. The structure of the scoreboard is in place and
+    can be successfully displayed, but it has currently not yet been integrated with the main code. In the
+    motion_control node, goals are successfully counted, but blocks have not yet been accounted for.
 
-import numpy as np
+    SUBSCRIBERS:
+        scores (robokeeper/Scores) - number of goals scored (human) and number of blocks (robot)
+
+    PUBLISHERS:
+        None
+    
+    SERVICES:
+        None
+"""
+
 import rospy
 from robokeeper.msg import Scores
-# from robokeeper_library.scoreboard import Scoreboard
-from tkinter import Tk, Canvas, font
-import numpy as np
-import rospy
+from tkinter import Tk, Canvas
 
 # Define useful parameters
 size_of_board = 600
@@ -23,39 +33,48 @@ class Scoreboard:
         self.window.title("Robokeeper")
         self.canvas = Canvas(self.window, width=size_of_board*2, height=size_of_board)
         self.canvas.pack()
-        # Input from user in form of clicks and keyboard
-        # self.play_again()
         self.begin = False
-        rospy.loginfo("Python init")
         self.human = 0
         self.robot = 0
 
         rospy.Subscriber("/scores", Scores, self.callback_score)
     
     def callback_score(self, msg:Scores):
-        rospy.loginfo("Scorekeeper callback")
+        """ 
+        Function: Callback function for the score subscriber
+        Args:
+            msg (Scores) - goals scored (msg.human) and blocks (msg.robot)
+        Returns:
+            None
+        """
         self.human = msg.human
         self.robot = msg.robot
 
         self.mainloop()
 
     def initialize_board(self):
+        """ 
+        Function: Creates base scoreboard
+        """
         self.board = []
         for i in range(rows):
             for j in range(cols):
                 self.board.append((i, j))
 
     def mainloop(self):
+        """ 
+        Function: Updates displayed window and runs display_scores continously
+        """
         while True:
             self.window.update()
             self.display_scores()
 
     def display_scores(self, human, robot):
+        """ 
+        Function: Creates specified text and displays in on created canvas
+        """
         robot_text = "ROBOT \n"
         human_text = "HUMAN \n"
-
-        # put gif image on canvas
-        # pic's upper left corner (NW) on the canvas is at x=50 y=10
 
         self.canvas.create_text(
             size_of_board*2*0.3,
@@ -90,11 +109,7 @@ class Scoreboard:
             text=str(robot),
         )
 
-
 if __name__=="__main__":
     rospy.init_node("scorekeeper")
     Scoreboard()
     rospy.spin()
-
-# game_instance = Scoreboard()
-# game_instance.mainloop(game_instance.human_score, game_instance.robot_score)
