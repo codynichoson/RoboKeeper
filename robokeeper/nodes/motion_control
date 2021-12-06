@@ -21,6 +21,18 @@
         open (std_srvs/Empty) - open the pincer
         above_paddle (std_srvs/Empty) - move robot end effector above the fixed paddle holster and open the gripper
         retrieve_paddle (std_srvs/Empty) - move robot end effector to grab paddle from the fixed paddle holster 
+        
+    Parameters:
+        paddle_x - The x coordinate of the paddle holster
+        paddle_y - The y coordinate of the paddle holster
+        paddle_z_above - The z coordinate the arm moves to to be directly above the paddle holster
+        paddle_z_align - The z coordiante of the paddle holster
+        ground_l - The length of the ground collision object
+        ground_w - The width of the ground collision object
+        ground_h - The height of the ground collision object
+        goal_l - The length of the goal collision object
+        goal_w - The width of the goal collision object
+        goal_h - The height of the goal collision object
 """
 import sys
 import copy
@@ -146,7 +158,7 @@ class MotionControl():
         Returns:
            EmptyResponse
         """
-
+        #Move to a pose directly above the paddle holster
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = self.paddle_x 
@@ -179,6 +191,7 @@ class MotionControl():
         Returns:
            EmptyResponse
         """
+        #Move to a pose that would allow the gripper to grab the paddle
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = self.paddle_x 
@@ -198,9 +211,10 @@ class MotionControl():
         self.move_group_commander.clear_pose_targets()
 
         rospy.sleep(3)
+        #Grab the paddle by closing the gripper
         self.pincer_pos_publisher.publish(0.1)
         rospy.sleep(1)
-        
+        #Go to the pose directly above the paddle holster
         quaternion = quaternion_from_euler(0, 1.5707, 1.5707, axes='sxyz')
         paddle_pose = Pose()
         paddle_pose.position.x = self.paddle_x 
@@ -369,6 +383,7 @@ class MotionControl():
             return
                 KeeperResponse
         """ 
+        #Move to a pose based on a y coordinate and directly in front of the robot
         res = KeeperResponse()
         if  -0.3 < req.pos < 0.3:
             if not self.now_keep:
@@ -437,6 +452,7 @@ class MotionControl():
 
     
 def main():
+    #Initialize MotionControl
     motion_control = MotionControl()
     rospy.spin()
 

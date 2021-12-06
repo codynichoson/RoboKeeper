@@ -1,5 +1,18 @@
 #!/usr/bin/env python
+""" The perception mode reads the color and depth images from the Intel RealSense camera. Using these streams of information, it locates the ball and finds its coordinates by using intrinsics.
+    It publishes this information to a topic and draws visual indicators on the ball to show it is being tracked.
 
+    SUBSCRIBERS:
+        camera/aligned_depth_to_color/camera_info (sensor_msgs/CameraInfo) - Camera information to use for intrinsics
+        camera/color/image_raw (sensor_msgs/Image) - The raw color image from the camera for color detection
+        camera/aligned_depth_to_color/image_raw (sensor_msgs/Image) - The raw aligned depth color image from the camera for depth data
+
+    PUBLIHSERS:
+        Xy_depth (robokeeper/Xy_depth) - x,y,z coordinates of the ball with respect to the camera's frame
+    
+    SERVICE:
+        None
+"""
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
@@ -13,7 +26,7 @@ class GetData(object):
     Using the color and depth video streams from the camera, create a contour on the red ball and create three dimensional coordinates 
     """
     def __init__(self):
-
+        #Converts ROS images to a format for OpenCV
         self._bridge = CvBridge()
         #Subscribe to camera_info to get intrinsics data
         rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.get_info)
@@ -79,6 +92,7 @@ class GetData(object):
                 #Find centroid of contour
                 self.cx = int(M['m10']/M['m00'])
                 self.cy = int(M['m01']/M['m00'])
+                #Create a circle and rectangle on the ball
                 cv2.circle(img, (self.cx,self.cy), 5, (150,50,100), -1)
                 cv2.rectangle(img, (self.cx-25, self.cy-25), (self.cx+25, self.cy+25), (150,50,100), 3)
             else:
