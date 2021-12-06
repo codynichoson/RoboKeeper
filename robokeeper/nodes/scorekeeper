@@ -3,11 +3,98 @@
 import numpy as np
 import rospy
 from robokeeper.msg import Scores
-from robokeeper_library.scoreboard import Scoreboard
+# from robokeeper_library.scoreboard import Scoreboard
+from tkinter import Tk, Canvas, font
+import numpy as np
+import rospy
 
-class Scorekeeper():
+# Define useful parameters
+size_of_board = 600
+rows = 10
+cols = 10
+DELAY = 100
+symbol_size = (size_of_board / 3 - size_of_board / 8) / 2
+symbol_thickness = 2
+PURPLE_COLOR = "#59118e"
+
+class Scoreboard:
     def __init__(self):
-        rospy.Subscriber("/scores", Scores, self.callback_score)
+        self.window = Tk()
+        self.window.title("Robokeeper")
+        self.canvas = Canvas(self.window, width=size_of_board*2, height=size_of_board)
+        self.canvas.pack()
+        # Input from user in form of clicks and keyboard
+        # self.play_again()
+        self.begin = False
+        rospy.loginfo("Python init")
+        self.human = 0
+        self.robot = 0
 
+        rospy.Subscriber("/scores", Scores, self.callback_score)
+    
     def callback_score(self, msg:Scores):
-        Scoreboard.mainloop(msg.human, msg.robot)
+        rospy.loginfo("Scorekeeper callback")
+        self.human = msg.human
+        self.robot = msg.robot
+
+        self.mainloop()
+
+    def initialize_board(self):
+        self.board = []
+        for i in range(rows):
+            for j in range(cols):
+                self.board.append((i, j))
+
+    def mainloop(self):
+        while True:
+            self.window.update()
+            self.display_scores()
+
+    def display_scores(self, human, robot):
+        robot_text = "ROBOT \n"
+        human_text = "HUMAN \n"
+
+        # put gif image on canvas
+        # pic's upper left corner (NW) on the canvas is at x=50 y=10
+
+        self.canvas.create_text(
+            size_of_board*2*0.3,
+            size_of_board*0.25,
+            font=("Helvetica 60"),
+            fill=PURPLE_COLOR,
+            text=human_text,
+        )
+
+        # score_text = str(score)
+        self.canvas.create_text(
+            size_of_board*2*0.7,
+            size_of_board*0.25,
+            font=("Helvetica 60"),
+            fill=PURPLE_COLOR,
+            text=robot_text,
+        )
+
+        self.canvas.create_text(
+            size_of_board*2*0.3,
+            size_of_board*0.65,
+            font=("Helvetica 300"),
+            fill=PURPLE_COLOR,
+            text=str(human),
+        )
+
+        self.canvas.create_text(
+            size_of_board*2*0.7,
+            size_of_board*0.65,
+            font=("Helvetica 300"),
+            fill=PURPLE_COLOR,
+            text=str(robot),
+        )
+
+
+if __name__=="__main__":
+    rospy.init_node("scorekeeper")
+    Scoreboard()
+    rospy.spin()
+
+# game_instance = Scoreboard()
+# game_instance.mainloop(game_instance.human_score, game_instance.robot_score)

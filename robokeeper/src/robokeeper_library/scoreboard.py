@@ -5,6 +5,7 @@ import random
 import time
 import numpy as np
 from PIL import ImageTk,Image
+import rospy
 
 # Define useful parameters
 size_of_board = 600
@@ -25,8 +26,8 @@ class Scoreboard:
         # Input from user in form of clicks and keyboard
         # self.play_again()
         self.begin = False
-        self.robot_score = 0
-        self.human_score = 0
+        rospy.loginfo("Python init")
+
 
     def initialize_board(self):
         self.board = []
@@ -81,5 +82,5 @@ class Scoreboard:
             text=str(robot),
         )
 
-game_instance = Scoreboard()
-game_instance.mainloop(game_instance.human_score, game_instance.robot_score)
+# game_instance = Scoreboard()
+# game_instance.mainloop(game_instance.human_score, game_instance.robot_score)
