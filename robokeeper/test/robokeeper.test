@@ -1,5 +1,6 @@
 <launch>
 
+  <rosparam file="$(find robokeeper)/config/params.yaml" />
 <!-- start intel realsense camera -->
   <include file="$(find robokeeper)/launch/intel_cam.launch"/>
 
