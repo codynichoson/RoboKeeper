@@ -1,4 +1,19 @@
 #!/usr/bin/env python
+""" The transforms node subscribes to the x,y,z coordinates of the ball in the camera's frame and the
+    transformation of an AprilTag to the camera's frame. Using these along with the measured transformation 
+    between the AprilTag and the robot frame, the location of the ball coordinates in the robot frame is
+    determined and published.
+
+    SUBSCRIBERS:
+        Xy_depth (robokeeper/Xy_depth) - x,y,z coordinates of the ball with respect to the camera's frame
+        tag_detections (AprilTagDetectionArray) - transformations of AprilTag relative to the camera frame
+
+    PUBLISHERS:
+        Goalie_coord (robokeeper/Goalie_coord) - x,y,z coordinates of the ball with respect to the robot's frame
+    
+    SERVICES:
+        None
+"""
 
 import rospy
 from cv_bridge import CvBridge
