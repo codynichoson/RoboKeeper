@@ -7,27 +7,29 @@ from robokeeper.msg import Xy_depth, Goalie_coord
 from apriltag_ros.msg import AprilTagDetectionArray
 import cv2
 import numpy as np
-from robokeeper.srv import Keeper, KeeperRequest, KeeperResponse
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import modern_robotics as mr
 
 class Transforms():
     def __init__(self):
+        # Subscribe to ball coordinates in camera frame and AprilTag detection
         rospy.Subscriber("/Xy_depth", Xy_depth, self.callback_coords)
         rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
+        
+        # Create publisher to publish ball coordinates in robot frame
         self.pub = rospy.Publisher("/Goalie_coord", Goalie_coord, queue_size=10)
-        self.__keeper = rospy.ServiceProxy("keep",Keeper)
+  
         self.count = 0
-        # self.ball_flag = 0
 
-    def callback_coords(self,data):
+    def callback_coords(self,data): # Callback function for ball in camera frame subscriber
         # print(data)
         #Get xyz of ball relative to camera
         self.ball_x = data.x
         self.ball_y = data.y
         self.ball_z = data.depth
         self.ball_flag = data.flag
-    def tf(self,data):
+        
+    def tf(self,data): # Callback function for AprilTag detection subscriber
         transform = data
         # print(data.detections[1].id)
         # if data.detections[1].id[0] == 69:
