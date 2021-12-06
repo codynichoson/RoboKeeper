@@ -16,7 +16,6 @@ class Transforms():
         rospy.Subscriber("/Xy_depth", Xy_depth, self.callback_coords)
         rospy.Subscriber("/tag_detections", AprilTagDetectionArray, self.tf)
         self.pub = rospy.Publisher("/Goalie_coord", Goalie_coord, queue_size=10)
-        self.pub_paddle = rospy.Publisher("/Paddle_coord", Goalie_coord, queue_size=10)
         self.__keeper = rospy.ServiceProxy("keep",Keeper)
         self.count = 0
         # self.ball_flag = 0
