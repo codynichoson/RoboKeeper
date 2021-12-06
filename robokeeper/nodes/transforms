@@ -14,7 +14,6 @@
     SERVICES:
         None
 """
-
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
@@ -36,80 +35,84 @@ class Transforms():
   
         self.count = 0
 
-    def callback_coords(self,data): # Callback function for ball in camera frame subscriber
-        # print(data)
-        #Get xyz of ball relative to camera
+    def callback_coords(self,data): 
+        """ 
+        Function: Callback function for getting ball coordinates in camera frame
+        Args:
+            data (robokeeper/Xy_depth) - xyz coordinates of ball relative to the camera frame
+        Returns:
+            None
+        """
+        # Get xyz of ball relative to camera frame
         self.ball_x = data.x
         self.ball_y = data.y
         self.ball_z = data.depth
         self.ball_flag = data.flag
         
-    def tf(self,data): # Callback function for AprilTag detection subscriber
+    def tf(self,data):
+        """ 
+        Function: Callback function for detecting the AprilTag
+        Args:
+            data (AprilTagDetectionArray) - transformation between detected AprilTag and camera frame
+        Returns:
+            None
+        """
         transform = data
-        # print(data.detections[1].id)
-        # if data.detections[1].id[0] == 69:
-        #     i = 0 
-        #     j = 1
-            
-        # elif data.detections[1].id[0] == 420:
-    
-        #     i = 1 
-        #     j = 0
-        #Get data from tag 69
+
+        # Get transform data from AprilTag
         self.x1 = data.detections[0].pose.pose.pose.position.x
         self.y1 = data.detections[0].pose.pose.pose.position.y
         self.z1 = data.detections[0].pose.pose.pose.position.z
         orientation1 = data.detections[0].pose.pose.pose.orientation
         orientation_list1 = [orientation1.x, orientation1.y, orientation1.z, orientation1.w]
         (roll1, pitch1, yaw1) = euler_from_quaternion (orientation_list1)
-        # print(roll, pitch1, yaw1)
-        # print('i value',i)
-        
- 
 
-        #Get the translation from the camera to april tag 69
-        translation1 = np.array([ [1,0,0,self.x1],[0,1,0,self.y1],[0,0,1,self.z1],[0,0,0,1] ])
+        # Get the translation from the AprilTag to camera frame
+        translation1 = np.array([[1, 0, 0, self.x1],
+                                 [0, 1, 0, self.y1],
+                                 [0, 0, 1, self.z1],
+                                 [0, 0, 0,       1]])
 
-
-        #transforms for the camera to april tag 69
-        Tx_rot1 = np.array([ [1,0,0,0],[0,np.cos(0),-np.sin(0),0],[0,np.sin(0),np.cos(0),0],[0,0,0,1] ])
-        Ty_rot1 = np.array([ [np.cos(pitch1),0,np.sin(pitch1),0],[0,1,0,0],[-np.sin(pitch1),0,np.cos(pitch1),0],[0,0,0,1] ])
-        Tz_rot1 = np.array([ [np.cos(yaw1),-np.sin(yaw1),0,0],[np.sin(yaw1),np.cos(yaw1),0,0],[0,0,1,0],[0,0,0,1] ])
+        # Get transform data of AprilTag relative to camera frame
+        Tx_rot1 = np.array([[1,         0,          0, 0],
+                            [0, np.cos(0), -np.sin(0), 0],
+                            [0, np.sin(0),  np.cos(0), 0],
+                            [0,         0,          0, 1]])
+        Ty_rot1 = np.array([[ np.cos(pitch1), 0, np.sin(pitch1), 0],
+                            [              0, 1,              0, 0],
+                            [-np.sin(pitch1), 0, np.cos(pitch1), 0],
+                            [              0, 0,              0, 1]])
+        Tz_rot1 = np.array([[np.cos(yaw1), -np.sin(yaw1), 0, 0],
+                            [np.sin(yaw1),  np.cos(yaw1), 0, 0],
+                            [           0,             0, 1, 0],
+                            [           0,             0, 0, 1]])
         Trot1 = Tz_rot1@Ty_rot1@Tx_rot1
-        TCam_April1 = Trot1@translation1
-        TApril_Cam1 = mr.TransInv(TCam_April1)
+        TCam_April1 = Trot1@translation1 #Transform of AprilTag relative to camera
+        TApril_Cam1 = mr.TransInv(TCam_April1) # Transofmr of camera relative to AprilTag
 
+        # Transform of AprilTag relative to robot frame (measured physically)
+        TRobot_April1 = np.array([[1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1]])
 
+        # Transform of ball coordinates in camera frame
+        TCamera_Ball = np.array([[1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1]])
 
+        # Transform of camera in robot frame
+        TRobot_Camera = np.array([[1,0,0,-0.61],[0,1,0,0],[0,0,1,1],[0,0,0,1]])
 
-        #For the first april tag, get the translation from the base of the robot to april tag 69
-        TRobot_April1 = np.array([ [1,0,0,0.5],[0,1,0,0],[0,0,1,0.45],[0,0,0,1] ])
-
-        
-        # if self.ball_flag == 1:
-        TCamera_Ball = np.array([ [1,0,0,self.ball_x],[0,1,0,self.ball_y],[0,0,1,self.ball_z],[0,0,0,1] ])
-        # elif self.ball_flag == 0:
-        # TCamera_Ball = np.array([ [1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1] ])
-        TRobot_Camera = np.array([ [1,0,0,-0.61],[0,1,0,0],[0,0,1,1],[0,0,0,1] ])
+        # Calculate transform of ball coordinates in robot frame
         TRB = TRobot_April1@TApril_Cam1@TCamera_Ball
 
-
+        # Package transform between ball and robot frame into variable of type Goalie_coord
         goalie_xyz = Goalie_coord()
         goalie_xyz.x = TRB[0][3]
         goalie_xyz.y = -TRB[1][3]-0.27
         goalie_xyz.z = -TRB[2][3]
         
+        # If there is a ball in frame, publish its (robot frame) coordinates
         if self.ball_flag == 1:
             self.pub.publish(goalie_xyz)
-        
- 
-
-   
 
 if __name__=="__main__":
     rospy.init_node("Transform_node")
     T = Transforms()
     rospy.spin()
-
-    # Rc_r Rc_b
-    # Rrw_c * Rc_b
