@@ -144,7 +144,10 @@ The main service used is /start_keeping. As the name suggests, this service allo
     rosservice call /stop_keeping 
     ```
                                     
+## Additional Notes
+There are some features within this code that were partially developed, but not completed due to time contraints. Because of this, you may notice certain things in the source code that are not mentioned here.
                                     
+An example of this is the scoreboard feature. The original plan was to include both a goal counter and block counter when playing with the robot and display these stats to the user in order to create a game. The goal counter was successfully created, but we didn't have time to complete the black counter. The goal counter is located within the 'motion_control' node and the infrastructure for displaying the actual scoreboard using the 'tkinter' library is located in a node called 'scorekeeper'.
           
                                     
 
