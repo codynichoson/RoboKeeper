@@ -5,15 +5,6 @@
 <img src="https://user-images.githubusercontent.com/62906322/144802674-e79eaead-e5f2-4155-9ca0-5d0346366a89.gif" alt="Robokeeper being a boss height="270" width="480" />
 
  </p>
- 
-### Note
-edit `custom_ws/src/hdt_6dof_a24_pincer/hdt_6dof_a24_pincer_moveit/config/joint_limits.yaml` to make max velocities 2.5 instead of 0.785
-
-edit `custom_ws/src/hdt_6dof_a24_pincer/hdt_6dof_a24_pincer_moveit/config/kinematics.yaml` and make the kinmeatic solver `lma_kinematics_plugin/LMAKinematicsPlugin`
-
- edit `hdt_6dof_a24_pincer/hdt_6dof_a24_pincer_description/urdf/hdt_arm.xacro` to make `pos_limit` equal to `"${8*M_PI}"` (line 4) 
-### Overview
-The Robokeeper ROS Noetic package allows HDT Adroit 6-dof manipulator arm to play goalkeeper.
 
 ### Equipment
 ##### Hardware:
