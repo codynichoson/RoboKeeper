@@ -68,37 +68,37 @@ This node provides the core functionality of the robokeeper.Primarily, it subscr
 The main service used is /start_keeping. As the name suggests, this service allows the robot to begin interpreting the ball coordinates and attempting to intersect it at the goal line. Appropriate joint trajectory commands are sent to the robot through a mix of MoveIt! and direct joint publishing (depending on the service called) in order to accomplish the task. This node also keeps track of goals scored by determining if the ball has entered the net.
 
 ### Services
-The `reset` service moves the Adroit arm directly in front of its base and the goal.
+1. The `reset` service moves the Adroit arm directly in front of its base and the goal.
 
 `
 rosservice call /reset
 `
 
-The `keep` service moves the robotic arm to a pose that is only dependent on a y-value. An example of the service being called follows.
+2. The `keep` service moves the robotic arm to a pose that is only dependent on a y-value. An example of the service being called follows.
 
 `
 rosservice call /keep "pos: 0.0"
 `
 
-`above_paddle` is a service that moves the arm directly above the paddle holster to get in a position for consistent retrieval.
+3. `above_paddle` is a service that moves the arm directly above the paddle holster to get in a position for consistent retrieval.
 
 `
 rosservice call /above_paddle
 `
 
-To retrieve the paddle, the `retrieve_paddle` can be called. It moves the arm to a postion where it can grip the paddle, it then closes the gripper, and finally moves to the same position as `above_paddle`.
+4. To retrieve the paddle, the `retrieve_paddle` can be called. It moves the arm to a postion where it can grip the paddle, it then closes the gripper, and finally moves to the same position as `above_paddle`.
 
 `
 rosservice call /retrieve_paddle
 `
 
-The `start_keeping` service enables the robot to block the red ball from entering the goal. 
+5. The `start_keeping` service enables the robot to block the red ball from entering the goal. 
 
 `
 rosservice call /start_keeping
 `
 
-To stop the robot from moving and tracking the ball, call the `stop_keeping` service.
+6. To stop the robot from moving and tracking the ball, call the `stop_keeping` service.
 
 `
 rosservice call /stop_keeping 
