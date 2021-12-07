@@ -6,6 +6,11 @@
 
  </p>
 
+### Demonstration Videos
+- Grabbing the paddle: https://www.youtube.com/watch?v=I-gsDBO_vm0
+- Blocking the ball (demo 1): https://www.youtube.com/watch?v=n23wejOc3FQ
+- Blocking the ball (demo 2): https://www.youtube.com/watch?v=j17Jk-MGL80
+
 ### Equipment
 ##### Hardware:
 - HDT Global Adroit Manipulator Arm
@@ -14,8 +19,6 @@
 - Robot Operating System (ROS)
 - MoveIt!
 - OpenCV
-
-### Dependencies
 
 ### Quickstart Guide
 0. Install ROS Noetic on Ubuntu 20.04
