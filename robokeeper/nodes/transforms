@@ -25,6 +25,10 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import modern_robotics as mr
 
 class Transforms():
+    '''
+    Initializes node, takes in CV coordinate data, computes transformations, and outputs
+    ball coordinates in the robot frame
+    '''
     def __init__(self):
         # Subscribe to ball coordinates in camera frame and AprilTag detection
         rospy.Subscriber("/Xy_depth", Xy_depth, self.callback_coords)

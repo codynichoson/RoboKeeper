@@ -119,7 +119,7 @@ def get_rosbag_data():
 
 def main():
     '''
-    Main is just used to test the above functions
+    Main is just used to test and debug the above functions
     '''
     data = get_rosbag_data().to_numpy()
     x_data = data[:, 1]

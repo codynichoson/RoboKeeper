@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # PKG = 'robokeeper'
-
+'''
+Unit tests for the functions in our python pkg and a few important services
+'''
 import unittest
 import rospy
 import numpy as np
@@ -8,13 +10,17 @@ from robokeeper.srv import Keeper
 from robokeeper_library.robokeeper_functions import joint_lookup_table, traj_linear_reg
 
 class RobokeeperTest(unittest.TestCase):
+    '''Sets up and executes the unit tests'''
 
     def __init__(self, *args):
-        super(RobokeeperTest,self).__init__(*args)
+        super(RobokeeperTest, self).__init__(*args)
         rospy.init_node("robokeeper_test")
         rospy.sleep(3)
 
     def test_lookup_table(self):
+        '''
+        Test for the lookup table function used for mapping end effector positions to joint angles
+        '''
         y_tests = [0.09, -0.03, 0.18, -0.23]  # test these y-coords
         expected_angles = {
             0.09: [-2.980615632032212, 1.0738193218849965, 3.1179111024732222, -0.22473504379450288, 0.5154332745047984, 1.6421765486826985, 0.10124582177772824],
@@ -23,10 +29,13 @@ class RobokeeperTest(unittest.TestCase):
             -0.23: [-3.5788863970824245, 1.141316536403482, 3.258274628119618, 0.9112123959995543, 0.3367190587910811, 1.0446727974338323, 0.10124582177772824]
         }
 
-        for test in y_tests: 
+        for test in y_tests:
             self.assertEquals(joint_lookup_table(test), expected_angles[test])
 
-    def test_linear_reg(self): 
+    def test_linear_reg(self):
+        '''
+        Test for the linear regression function used for trajectory prediction
+        '''
         # experimental data
         test_data_x = [
             [0.18055818, 0.15823179, 0.13166919, 0.07714387, 0.05425928, 0.00130307, -0.02248313, -0.05107477, -0.10842705, -0.09975091],
@@ -46,6 +55,9 @@ class RobokeeperTest(unittest.TestCase):
             self.assertEquals(pred_known, np.round(pred_calc, 4))
 
     def test_home(self):
+        '''
+        Test that the robokeeper can move to its home position
+        '''
         # wait for keep service to become available
         rospy.wait_for_service("keep")
         # call keep service
@@ -54,6 +66,9 @@ class RobokeeperTest(unittest.TestCase):
         self.assertEquals(1, resp.code.val)
 
     def test_keep(self):
+        '''
+        Test that the robokeeper can start goal keeping
+        '''
         # wait for keep service to become available
         rospy.wait_for_service("keep")
         # call keep service
