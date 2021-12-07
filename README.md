@@ -70,39 +70,39 @@ The main service used is /start_keeping. As the name suggests, this service allo
 ### Services
 1. The `reset` service moves the Adroit arm directly in front of its base and the goal.
 
-`
-rosservice call /reset
-`
+    `
+    rosservice call /reset
+    `
 
 2. The `keep` service moves the robotic arm to a pose that is only dependent on a y-value. An example of the service being called follows.
 
-`
-rosservice call /keep "pos: 0.0"
-`
+    `
+    rosservice call /keep "pos: 0.0"
+    `
 
 3. `above_paddle` is a service that moves the arm directly above the paddle holster to get in a position for consistent retrieval.
 
-`
-rosservice call /above_paddle
-`
+    `
+    rosservice call /above_paddle
+    `
 
 4. To retrieve the paddle, the `retrieve_paddle` can be called. It moves the arm to a postion where it can grip the paddle, it then closes the gripper, and finally moves to the same position as `above_paddle`.
 
-`
-rosservice call /retrieve_paddle
-`
+    `
+    rosservice call /retrieve_paddle
+    `
 
 5. The `start_keeping` service enables the robot to block the red ball from entering the goal. 
 
-`
-rosservice call /start_keeping
-`
+    `
+    rosservice call /start_keeping
+    `
 
 6. To stop the robot from moving and tracking the ball, call the `stop_keeping` service.
 
-`
-rosservice call /stop_keeping 
-`
+    `
+    rosservice call /stop_keeping 
+    `
 
 ### Running the package
 First, run the main launchfile. To run the program on the real robot, run the command below.
