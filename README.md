@@ -7,9 +7,8 @@
  </p>
 
 ## Demonstration Videos
-- Grabbing the paddle: https://www.youtube.com/watch?v=I-gsDBO_vm0
-- Blocking the ball (demo 1): https://www.youtube.com/watch?v=n23wejOc3FQ
-- Blocking the ball (demo 2): https://www.youtube.com/watch?v=j17Jk-MGL80
+- Grabbing the paddle: https://youtu.be/9TuFG5CqvZ8
+- Blocking the ball: https://youtu.be/N0HPvFNHrTw
 
 ## Equipment
 ##### Hardware:
