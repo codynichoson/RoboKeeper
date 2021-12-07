@@ -6,12 +6,12 @@
 
  </p>
 
-### Demonstration Videos
+## Demonstration Videos
 - Grabbing the paddle: https://www.youtube.com/watch?v=I-gsDBO_vm0
 - Blocking the ball (demo 1): https://www.youtube.com/watch?v=n23wejOc3FQ
 - Blocking the ball (demo 2): https://www.youtube.com/watch?v=j17Jk-MGL80
 
-### Equipment
+## Equipment
 ##### Hardware:
 - HDT Global Adroit Manipulator Arm
 - Intel RealSense Camera
@@ -19,8 +19,9 @@
 - Robot Operating System (ROS)
 - MoveIt!
 - OpenCV
+- AprilTag
 
-### Quickstart Guide
+## Quickstart Guide
 0. Install ROS Noetic on Ubuntu 20.04
 1. Create catkin workspace
     ```
@@ -40,8 +41,44 @@
     $ rosdep install --from-paths src --ignore-src -r -y
     $ catkin_make
     ```
-****
-### Launchfiles
+
+## Running the package
+1. First, run the main launchfile. To run the program on the real robot, run the command below.
+    ```
+    roslaunch robokeeper robokeeper_go.launch
+    ```
+
+2. If using a simulation, add the `sim:=true` argument when running the main launchfile.
+    ```
+    roslaunch robokeeper robokeeper_go.launch sim:=true
+    ```
+
+3. The robot now has to pick up the paddle and this is done with two services. First, call `above_paddle`.
+    ```
+    rosservice call /above_paddle
+    ```
+
+4. Next, call the 'retrieve_paddle` service.
+    ```
+    rosservice call /retrieve_paddle
+    ```
+
+5. Call the `reset` service to move the robot in front of the goal.
+    ```
+    rosservice call /reset
+    ```
+
+6. Call `start_keeping` to enable the goal keeping component of the project.
+    ```
+    rosservice call /start_keeping
+    ```
+
+7. When finished, call the 'stop_keeping' service.
+    ```
+    rosservice call /stop_keeping 
+    ```
+    
+## Launchfiles
 #### robokeeper_go.launch
 This is the main launchfile used to operate robokeeper. It starts by launching `robokeeper_moveit.launch` which loads the necessary urdf file and hardware configuration, as well as the main `MoveIt!` executable. It then launches `intel_cam.launch` which starts the Intel Realsense camera. It also starts a `transforms` node which handles the calculation of transformation between various frames within the world. Finally, the launchfile starts a `motion_control` node that publishes appropriate joint state messages to actuate the arm. 
 
@@ -70,82 +107,46 @@ This node provides the core functionality of the robokeeper. Primarily, it subsc
 
 The main service used is /start_keeping. As the name suggests, this service allows the robot to begin interpreting the ball coordinates and attempting to intersect it at the goal line. Appropriate joint trajectory commands are sent to the robot through a mix of MoveIt! and direct joint publishing (depending on the service called) in order to accomplish the task. This node also keeps track of goals scored by determining if the ball has entered the net.
 
-### Services
+## Services
 1. The `reset` service moves the Adroit arm directly in front of its base and the goal.
 
-    `
+    ```
     rosservice call /reset
-    `
+    ```
 
 2. The `keep` service moves the robotic arm to a pose that is only dependent on a y-value. An example of the service being called follows.
 
-    `
+    ```
     rosservice call /keep "pos: 0.0"
-    `
+    ```
 
 3. `above_paddle` is a service that moves the arm directly above the paddle holster to get in a position for consistent retrieval.
 
-    `
+    ```
     rosservice call /above_paddle
-    `
+    ```
 
 4. To retrieve the paddle, the `retrieve_paddle` can be called. It moves the arm to a postion where it can grip the paddle, it then closes the gripper, and finally moves to the same position as `above_paddle`.
 
-    `
+    ```
     rosservice call /retrieve_paddle
-    `
+    ```
 
 5. The `start_keeping` service enables the robot to block the red ball from entering the goal. 
 
-    `
+    ```
     rosservice call /start_keeping
-    `
+    ```
 
 6. To stop the robot from moving and tracking the ball, call the `stop_keeping` service.
 
-    `
+    ```
     rosservice call /stop_keeping 
-    `
+    ```
+                                    
+                                    
+          
+                                    
 
-### Running the package
-First, run the main launchfile. To run the program on the real robot, run the command below.
-
-`
-roslaunch robokeeper robokeeper_go.launch
-`
-
-If using a simulation, add the `sim:=true` argument when running the main launchfile.
-
-`
-roslaunch robokeeper robokeeper_go.launch sim:=true
-`
-
-The robot now has to pick up the paddle and this is done with two services. First, call `above_paddle`.
-
-`
-rosservice call /above_paddle
-`
-
-Next, call the 'retrieve_paddle` service.
-
-`
-rosservice call /retrieve_paddle
-`
-
-Call the `reset` service to move the robot in front of the goal.
-
-`
-rosservice call /reset
-`
-
-Call `start_keeping` to enable the goal keeping component of the project.
-
-`
-rosservice call /start_keeping
-`
-
-When finished, call the 'stop_keeping' service.
-
-`
-rosservice call /stop_keeping 
-`
+                                    
+                                    
